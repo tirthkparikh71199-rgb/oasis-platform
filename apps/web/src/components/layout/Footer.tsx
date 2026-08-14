@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { CompanyProfile } from "@/lib/content";
+import type { FooterContent } from "@/lib/site-content";
 
 const QUICK_LINKS = [
   { href: "/products", label: "PVC Resin" },
@@ -15,7 +16,7 @@ const COMPANY_LINKS = [
   { href: "/terms", label: "Terms of use" },
 ];
 
-export function Footer({ profile }: { profile: CompanyProfile }) {
+export function Footer({ profile, footer }: { profile: CompanyProfile; footer: FooterContent }) {
   const year = new Date().getFullYear();
   return (
     <footer className="relative overflow-hidden bg-ink text-white">
@@ -37,7 +38,7 @@ export function Footer({ profile }: { profile: CompanyProfile }) {
               </span>
             </div>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-white/60">
-              {profile.tagline}. Serving pipe, profile and fittings manufacturers across India since {profile.established ?? 2010}.
+              {footer.description} Serving pipe, profile and fittings manufacturers across India since {profile.established ?? 2010}.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               {profile.phones?.map((p) => (
@@ -49,7 +50,7 @@ export function Footer({ profile }: { profile: CompanyProfile }) {
           </div>
 
           <div>
-            <h4 className="eyebrow text-white/50">Products</h4>
+            <h4 className="eyebrow text-white/50">{footer.productsTitle}</h4>
             <ul className="mt-4 space-y-2.5">
               {QUICK_LINKS.map((l) => (
                 <li key={l.label}>
@@ -62,7 +63,7 @@ export function Footer({ profile }: { profile: CompanyProfile }) {
           </div>
 
           <div>
-            <h4 className="eyebrow text-white/50">Company</h4>
+            <h4 className="eyebrow text-white/50">{footer.companyTitle}</h4>
             <ul className="mt-4 space-y-2.5">
               {COMPANY_LINKS.map((l) => (
                 <li key={l.label}>
@@ -82,7 +83,7 @@ export function Footer({ profile }: { profile: CompanyProfile }) {
           <p className="text-xs text-white/45">
             © {year} {profile.legalName ?? profile.name}. All rights reserved.
           </p>
-          <p className="text-xs text-white/35">Importer of polymer raw materials · Ahmedabad, India</p>
+          <p className="text-xs text-white/35">{footer.bottomTagline}</p>
         </div>
       </div>
     </footer>

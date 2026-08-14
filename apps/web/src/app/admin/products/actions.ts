@@ -8,13 +8,13 @@ import { join, extname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { schema } from "@oasis/db";
 import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth";
+import { requirePerm, requireUser } from "@/lib/auth";
 
 const str = (f: FormData, k: string) => (f.get(k) ? String(f.get(k)).trim() : null);
 
 export async function createProduct(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "catalog.write", "/admin/products");
   const name = str(formData, "name");
   if (!name) redirect("/admin/products?error=missing-name");
   const slug = str(formData, "slug") ?? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -46,8 +46,8 @@ export async function createProduct(formData: FormData) {
 }
 
 export async function updateProduct(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "catalog.write", "/admin/products");
   const id = str(formData, "id");
   if (!id) redirect("/admin/products?error=missing-id");
   const name = str(formData, "name");
@@ -83,8 +83,8 @@ export async function updateProduct(formData: FormData) {
 }
 
 export async function deleteProduct(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "catalog.write", "/admin/products");
   const id = str(formData, "id");
   if (id) await db().delete(schema.products).where(eq(schema.products.id, id));
   revalidatePath("/products");
@@ -93,8 +93,8 @@ export async function deleteProduct(formData: FormData) {
 }
 
 export async function deleteImage(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "catalog.write", "/admin/products");
   const id = str(formData, "id");
   const productId = str(formData, "productId");
   if (id) await db().delete(schema.productImages).where(eq(schema.productImages.id, id));

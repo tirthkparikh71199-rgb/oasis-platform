@@ -26,6 +26,9 @@ const PERMISSION_SEEDS = [
   ["knowledge.write", "Upload or edit documents"],
   ["knowledge.publish", "Change document visibility"],
   ["reports.read", "View reports"],
+  ["orders.read", "View sales orders"],
+  ["orders.write", "Create or edit sales orders"],
+  ["orders.manage", "Manage and cancel sales orders"],
   ["settings.read", "View settings"],
   ["settings.write", "Edit settings"],
   ["seo.read", "View SEO pages"],
@@ -38,11 +41,12 @@ const PERMISSION_SEEDS = [
 const ROLE_PERMISSIONS: Record<string, string[]> = {
   SUPER_ADMIN: PERMISSION_SEEDS.map(([code]) => code),
   ADMIN: PERMISSION_SEEDS.filter(([code]) => !["roles.manage", "users.deactivate", "integrations.manage"].includes(code)).map(([code]) => code),
-  SALES: ["catalog.read", "partners.read", "partners.write", "leads.read", "leads.write", "leads.export", "chat.read", "chat.reply", "handoffs.manage", "knowledge.read", "reports.read"],
+  SALES: ["catalog.read", "partners.read", "partners.write", "leads.read", "leads.write", "leads.export", "orders.read", "orders.write", "chat.read", "chat.reply", "handoffs.manage", "knowledge.read", "reports.read"],
+  ANALYST: ["catalog.read", "inventory.read", "partners.read", "partners.write", "leads.read", "leads.write", "orders.read", "orders.write", "knowledge.read"],
   INVENTORY_MANAGER: ["catalog.read", "catalog.write", "inventory.read", "inventory.write", "inventory.manage", "partners.read", "knowledge.read"],
   KNOWLEDGE_MANAGER: ["catalog.read", "knowledge.read", "knowledge.write", "knowledge.publish", "seo.read", "seo.write"],
   AGENT: ["catalog.read", "leads.read", "chat.read", "chat.reply", "handoffs.manage", "knowledge.read"],
-  VIEWER: ["catalog.read", "inventory.read", "partners.read", "leads.read", "chat.read", "knowledge.read", "reports.read"],
+  VIEWER: ["catalog.read", "inventory.read", "partners.read", "leads.read", "chat.read", "knowledge.read", "reports.read", "orders.read"],
 };
 
 type ProductSeed = {

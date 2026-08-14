@@ -21,10 +21,20 @@ export const roleEnum = pgEnum("role", [
   "SUPER_ADMIN",
   "ADMIN",
   "SALES",
+  "ANALYST",
   "INVENTORY_MANAGER",
   "KNOWLEDGE_MANAGER",
   "AGENT",
   "VIEWER",
+]);
+
+export const orderStatusEnum = pgEnum("order_status", [
+  "NEW",
+  "CONFIRMED",
+  "IN_PROGRESS",
+  "SHIPPED",
+  "DELIVERED",
+  "CANCELLED",
 ]);
 
 export const visibilityEnum = pgEnum("visibility", ["PUBLIC", "INTERNAL", "CONFIDENTIAL"]);
@@ -517,6 +527,32 @@ export const handoffs = pgTable(
     resolvedAt: timestamp("resolved_at", { withTimezone: true }),
   },
   (t) => [index("handoffs_status_priority_idx").on(t.status, t.priority)],
+);
+
+// ---------------------------------------------------------------------------
+// Sales orders
+// ---------------------------------------------------------------------------
+
+export const orders = pgTable(
+  "orders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    orderNumber: text("order_number").notNull().unique(),
+    customerId: uuid("customer_id")
+      .notNull()
+      .references(() => customers.id, { onDelete: "restrict" }),
+    productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
+    quantity: text("quantity"),
+    unit: text("unit"),
+    amount: numeric("amount", { precision: 14, scale: 2 }),
+    status: orderStatusEnum("status").notNull().default("NEW"),
+    expectedDate: date("expected_date"),
+    notes: text("notes"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("orders_customer_idx").on(t.customerId), index("orders_status_idx").on(t.status), index("orders_created_idx").on(t.createdAt)],
 );
 
 // ---------------------------------------------------------------------------

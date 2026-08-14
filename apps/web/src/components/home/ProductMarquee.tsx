@@ -1,7 +1,6 @@
-const ITEMS = ["PVC RESIN", "PET RESIN", "PVC REGRIND", "CALCIUM CARBONATE", "IMPORT · SUPPLY · TRUST", "K-67 · K-57", "IV 0.80 BOTTLE GRADE", "PAN-INDIA DISPATCH"];
-
-export function ProductMarquee() {
-  const row = [...ITEMS, ...ITEMS];
+export function ProductMarquee({ items }: { items: string[] }) {
+  const list = items.length ? items : ["PVC RESIN", "PET RESIN", "PVC REGRIND", "CALCIUM CARBONATE"];
+  const row = [...list, ...list];
   return (
     <div className="marquee-paused relative overflow-hidden border-y border-line bg-white py-4">
       <div className="animate-marquee flex w-max items-center gap-8 whitespace-nowrap">

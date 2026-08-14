@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ProductCard } from "@/components/home/ProductCard";
 import { Reveal } from "@/components/motion/Reveal";
 import { getProducts, getCategories } from "@/lib/content";
+import { getProductsPageContent } from "@/lib/site-content";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ProductsPage() {
-  const [products, categories] = await Promise.all([getProducts({ publicOnly: true }), getCategories()]);
+  const [products, categories, page] = await Promise.all([getProducts({ publicOnly: true }), getCategories(), getProductsPageContent()]);
   const catBySlug = new Map(categories.map((c) => [c.id, c.slug]));
 
   return (
@@ -21,10 +22,9 @@ export default async function ProductsPage() {
         <div className="grid-bg pointer-events-none absolute inset-0" />
         <div className="container-x relative">
           <Reveal>
-            <p className="eyebrow text-accent">Catalogue</p>
-            <h1 className="mt-3 text-4xl font-extrabold sm:text-5xl">Our products</h1>            <p className="mt-4 max-w-2xl text-white/60">
-              Grades, documentation and availability shared transparently. Not sure what you need? Ask the assistant or talk to our sales team.
-            </p>
+            <p className="eyebrow text-accent">{page.eyebrow}</p>
+            <h1 className="mt-3 text-4xl font-extrabold sm:text-5xl">{page.title}</h1>
+            <p className="mt-4 max-w-2xl text-white/60">{page.subtext}</p>
           </Reveal>
         </div>
       </section>

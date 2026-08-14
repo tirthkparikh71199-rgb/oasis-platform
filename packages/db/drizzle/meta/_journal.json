@@ -8,6 +8,13 @@
       "when": 1786698595657,
       "tag": "0000_hot_vulture",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786702001475,
+      "tag": "0001_add-orders-and-analyst-role",
+      "breakpoints": true
     }
   ]
 }

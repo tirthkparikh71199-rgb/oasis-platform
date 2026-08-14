@@ -29,6 +29,8 @@ const envSchema = z.object({
   EMAIL_INBOX_USER: z.string().default(""),
   EMAIL_INBOX_PASS: z.string().default(""),
   ADMIN_ALERT_EMAIL: z.string().default("tirthkparikh71199@gmail.com"),
+  DAILY_REPORT_HOUR: z.string().default("08:00"),
+  DAILY_REPORT_TO: z.string().default(""),
 
   WHATSAPP_PROVIDER: z.enum(["sandbox", "meta"]).default("sandbox"),
   WHATSAPP_PHONE_NUMBER_ID: z.string().default(""),

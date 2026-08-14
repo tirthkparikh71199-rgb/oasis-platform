@@ -5,11 +5,11 @@ import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
 import { schema } from "@oasis/db";
 import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth";
+import { requirePerm, requireUser } from "@/lib/auth";
 
 export async function updateInquiryStatus(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "leads.write", "/admin/inquiries");
   const id = String(formData.get("id") ?? "");
   const status = String(formData.get("status") ?? "NEW");
   if (!id) redirect("/admin/inquiries");

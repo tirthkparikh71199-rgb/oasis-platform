@@ -5,11 +5,11 @@ import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
 import { schema } from "@oasis/db";
 import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth";
+import { requirePerm, requireUser } from "@/lib/auth";
 
 export async function sendAgentMessage(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "chat.reply", "/admin/chats");
   const conversationId = String(formData.get("conversationId") ?? "");
   const content = String(formData.get("content") ?? "").trim();
   if (!conversationId || !content) redirect("/admin/chats/" + conversationId);
@@ -47,8 +47,8 @@ export async function sendAgentMessage(formData: FormData) {
 }
 
 export async function resolveConversation(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "chat.reply", "/admin/chats");
   const conversationId = String(formData.get("conversationId") ?? "");
   if (!conversationId) redirect("/admin/chats");
 
