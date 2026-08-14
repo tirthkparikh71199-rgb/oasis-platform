@@ -1,0 +1,153 @@
+export const ROLE = {
+  SUPER_ADMIN: "SUPER_ADMIN",
+  ADMIN: "ADMIN",
+  SALES: "SALES",
+  INVENTORY_MANAGER: "INVENTORY_MANAGER",
+  KNOWLEDGE_MANAGER: "KNOWLEDGE_MANAGER",
+  AGENT: "AGENT",
+  VIEWER: "VIEWER",
+} as const;
+export type Role = (typeof ROLE)[keyof typeof ROLE];
+
+export const ROLES: Role[] = Object.values(ROLE);
+
+export const ROLE_LABEL: Record<Role, string> = {
+  SUPER_ADMIN: "Super Admin",
+  ADMIN: "Admin",
+  SALES: "Sales",
+  INVENTORY_MANAGER: "Inventory Manager",
+  KNOWLEDGE_MANAGER: "Knowledge Manager",
+  AGENT: "Agent",
+  VIEWER: "Viewer",
+};
+
+export const VISIBILITY = {
+  PUBLIC: "PUBLIC",
+  INTERNAL: "INTERNAL",
+  CONFIDENTIAL: "CONFIDENTIAL",
+} as const;
+export type Visibility = (typeof VISIBILITY)[keyof typeof VISIBILITY];
+
+export const PERMISSION = {
+  USERS_READ: "users.read",
+  USERS_WRITE: "users.write",
+  USERS_DEACTIVATE: "users.deactivate",
+  ROLES_MANAGE: "roles.manage",
+  CATALOG_READ: "catalog.read",
+  CATALOG_WRITE: "catalog.write",
+  CATALOG_PUBLISH: "catalog.publish",
+  INVENTORY_READ: "inventory.read",
+  INVENTORY_WRITE: "inventory.write",
+  INVENTORY_MANAGE: "inventory.manage",
+  PARTNERS_READ: "partners.read",
+  PARTNERS_WRITE: "partners.write",
+  LEADS_READ: "leads.read",
+  LEADS_WRITE: "leads.write",
+  LEADS_EXPORT: "leads.export",
+  CHAT_READ: "chat.read",
+  CHAT_REPLY: "chat.reply",
+  HANDOFFS_MANAGE: "handoffs.manage",
+  KNOWLEDGE_READ: "knowledge.read",
+  KNOWLEDGE_WRITE: "knowledge.write",
+  KNOWLEDGE_PUBLISH: "knowledge.publish",
+  REPORTS_READ: "reports.read",
+  SETTINGS_READ: "settings.read",
+  SETTINGS_WRITE: "settings.write",
+  SEO_READ: "seo.read",
+  SEO_WRITE: "seo.write",
+  AUDIT_READ: "audit.read",
+  SYSTEM_MONITOR: "system.monitor",
+  INTEGRATIONS_MANAGE: "integrations.manage",
+} as const;
+export type Permission = (typeof PERMISSION)[keyof typeof PERMISSION];
+
+export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
+  SUPER_ADMIN: Object.values(PERMISSION),
+  ADMIN: [
+    PERMISSION.USERS_READ,
+    PERMISSION.USERS_WRITE,
+    PERMISSION.CATALOG_READ,
+    PERMISSION.CATALOG_WRITE,
+    PERMISSION.CATALOG_PUBLISH,
+    PERMISSION.INVENTORY_READ,
+    PERMISSION.INVENTORY_WRITE,
+    PERMISSION.INVENTORY_MANAGE,
+    PERMISSION.PARTNERS_READ,
+    PERMISSION.PARTNERS_WRITE,
+    PERMISSION.LEADS_READ,
+    PERMISSION.LEADS_WRITE,
+    PERMISSION.LEADS_EXPORT,
+    PERMISSION.CHAT_READ,
+    PERMISSION.CHAT_REPLY,
+    PERMISSION.HANDOFFS_MANAGE,
+    PERMISSION.KNOWLEDGE_READ,
+    PERMISSION.KNOWLEDGE_WRITE,
+    PERMISSION.KNOWLEDGE_PUBLISH,
+    PERMISSION.REPORTS_READ,
+    PERMISSION.SETTINGS_READ,
+    PERMISSION.SETTINGS_WRITE,
+    PERMISSION.SEO_READ,
+    PERMISSION.SEO_WRITE,
+    PERMISSION.AUDIT_READ,
+    PERMISSION.SYSTEM_MONITOR,
+  ],
+  SALES: [
+    PERMISSION.CATALOG_READ,
+    PERMISSION.PARTNERS_READ,
+    PERMISSION.PARTNERS_WRITE,
+    PERMISSION.LEADS_READ,
+    PERMISSION.LEADS_WRITE,
+    PERMISSION.LEADS_EXPORT,
+    PERMISSION.CHAT_READ,
+    PERMISSION.CHAT_REPLY,
+    PERMISSION.HANDOFFS_MANAGE,
+    PERMISSION.KNOWLEDGE_READ,
+    PERMISSION.REPORTS_READ,
+  ],
+  INVENTORY_MANAGER: [
+    PERMISSION.CATALOG_READ,
+    PERMISSION.CATALOG_WRITE,
+    PERMISSION.INVENTORY_READ,
+    PERMISSION.INVENTORY_WRITE,
+    PERMISSION.INVENTORY_MANAGE,
+    PERMISSION.PARTNERS_READ,
+    PERMISSION.KNOWLEDGE_READ,
+  ],
+  KNOWLEDGE_MANAGER: [
+    PERMISSION.CATALOG_READ,
+    PERMISSION.KNOWLEDGE_READ,
+    PERMISSION.KNOWLEDGE_WRITE,
+    PERMISSION.KNOWLEDGE_PUBLISH,
+    PERMISSION.SEO_READ,
+    PERMISSION.SEO_WRITE,
+  ],
+  AGENT: [
+    PERMISSION.CATALOG_READ,
+    PERMISSION.LEADS_READ,
+    PERMISSION.CHAT_READ,
+    PERMISSION.CHAT_REPLY,
+    PERMISSION.HANDOFFS_MANAGE,
+    PERMISSION.KNOWLEDGE_READ,
+  ],
+  VIEWER: [
+    PERMISSION.CATALOG_READ,
+    PERMISSION.INVENTORY_READ,
+    PERMISSION.PARTNERS_READ,
+    PERMISSION.LEADS_READ,
+    PERMISSION.CHAT_READ,
+    PERMISSION.KNOWLEDGE_READ,
+    PERMISSION.REPORTS_READ,
+  ],
+};
+
+export function can(role: Role, permission: Permission): boolean {
+  return ROLE_PERMISSIONS[role].includes(permission);
+}
+
+export function canAny(role: Role, permissions: Permission[]): boolean {
+  return permissions.some((p) => can(role, p));
+}
+
+export function rolesFor(permission: Permission): Role[] {
+  return ROLES.filter((r) => can(r, permission));
+}

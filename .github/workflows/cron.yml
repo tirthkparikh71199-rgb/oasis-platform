@@ -1,0 +1,62 @@
+name: Nightly health & smoke checks
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+env:
+  PNPM_VERSION: 11.21.0
+  NODE_VERSION: 22
+
+jobs:
+  nightly:
+    name: Unit + lint + build smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: Build
+        run: pnpm build
+
+  prod-health:
+    name: Production endpoint health
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check main site
+        run: |
+          set -euo pipefail
+          if ! curl -fsS --max-time 30 -o /dev/null https://oasisimpex.in/; then
+            echo "PROD: main site unreachable"
+            exit 1
+          fi
+          echo "PROD: main site OK"
+      - name: Check health endpoint
+        run: |
+          set -euo pipefail
+          body="$(curl -fsS --max-time 30 https://oasisimpex.in/api/health || { echo 'PROD: /api/health unreachable'; exit 1; })"
+          echo "PROD health: $body"
+          echo "$body" | grep -q '"ok":true' || { echo "PROD: health not ok"; exit 1; }

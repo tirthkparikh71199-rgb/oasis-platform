@@ -1,0 +1,36 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "declaration": false,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "jsx": "preserve",
+    "paths": {
+      "@oasis/db": ["./packages/db/src/index.ts"],
+      "@oasis/db/*": ["./packages/db/src/*"],
+      "@oasis/ai": ["./packages/ai/src/index.ts"],
+      "@oasis/ai/*": ["./packages/ai/src/*"],
+      "@oasis/rag": ["./packages/rag/src/index.ts"],
+      "@oasis/rag/*": ["./packages/rag/src/*"],
+      "@oasis/messaging": ["./packages/messaging/src/index.ts"],
+      "@oasis/messaging/*": ["./packages/messaging/src/*"],
+      "@oasis/domain": ["./packages/domain/src/index.ts"],
+      "@oasis/domain/*": ["./packages/domain/src/*"],
+      "@oasis/config": ["./packages/config/src/index.ts"],
+      "@oasis/config/*": ["./packages/config/src/*"],
+      "@oasis/logger": ["./packages/logger/src/index.ts"],
+      "@oasis/logger/*": ["./packages/logger/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "**/dist", "**/.next", "**/coverage", "**/test-results"]
+}

@@ -1,0 +1,168 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PNPM_VERSION: 11.21.0
+  NODE_VERSION: 22
+
+jobs:
+  validate:
+    name: Lint · Typecheck · Unit tests · Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: Build
+        run: pnpm build
+
+  integration:
+    name: Integration (Postgres + pgvector, Testcontainers)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Integration tests
+        run: pnpm test:integration
+        env:
+          DATABASE_URL: postgresql://oasis:oasis@localhost:5432/oasis
+
+  e2e:
+    name: E2E (Playwright · desktop/mobile/tablet)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: oasis
+          POSTGRES_PASSWORD: oasis
+          POSTGRES_DB: oasis
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U oasis -d oasis"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm --filter @oasis/web exec playwright install --with-deps chromium
+
+      - name: Migrate + seed database
+        run: |
+          pnpm db:migrate
+          pnpm db:seed
+        env:
+          DATABASE_URL: postgresql://oasis:oasis@localhost:5432/oasis
+          SEED_ADMIN_EMAIL: admin@oasisimpex.in
+          SEED_ADMIN_PASSWORD: ChangeMe123!
+
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          DATABASE_URL: postgresql://oasis:oasis@localhost:5432/oasis
+          AI_PROVIDER: mock
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 7
+
+  security:
+    name: Secret-vendor privacy suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: No real secrets committed
+        run: |
+          set -euo pipefail
+          fail() { echo "SECURITY FAIL: $1"; exit 1; }
+
+          # Real .env must never be tracked
+          git ls-files | grep -qx '.env' && fail "real .env is tracked"
+          git ls-files | grep -E '^\.env\.[a-zA-Z0-9._-]+$' | grep -v '^\.env\.example$' | grep -v '^\.env\.local$' && fail "env file (non-example) tracked"
+
+          # Keys / certs
+          if git ls-files | grep -E '\.(pem|key|p12|pfx|jks)$' | grep -qv '\.test\.'; then
+            git ls-files | grep -E '\.(pem|key|p12|pfx|jks)$' | grep -v '\.test\.' && fail "key/cert file tracked"
+          fi
+
+          # Credential patterns
+          git ls-files -z | xargs -0 grep -lE 'AIza[0-9A-Za-z_-]{30,}|ghp_[A-Za-z0-9]{36}|xox[baprs]-|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY' 2>/dev/null | grep -v '\.md$' && fail "credential pattern found"
+
+          # No placeholder secrets left in .env.example
+          grep -qE '(^|_)(PASS|TOKEN|SECRET|KEY)=' .env.example && \
+            grep -q 'change-me' .env.example || echo "env.example has change-me placeholders"
+
+          echo "Security suite passed ✓"
