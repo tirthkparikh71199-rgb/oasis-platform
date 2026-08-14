@@ -37,6 +37,7 @@ export class GeminiAIProvider implements AIProvider {
         generationConfig: {
           temperature: opts.temperature ?? 0.4,
           maxOutputTokens: opts.maxOutputTokens ?? 512,
+          thinkingConfig: { thinkingBudget: 0 },
         },
       }),
     });

@@ -15,7 +15,7 @@ const envSchema = z.object({
   AI_MODEL: z.string().default("gemini-flash-latest"),
   GEMINI_API_KEY: z.string().default(""),
   EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
-  EMBEDDING_DIM: z.coerce.number().int().positive().default(768),
+  EMBEDDING_DIM: z.coerce.number().int().positive().default(3072),
 
   EMAIL_TRANSPORT: z.enum(["smtp", "log"]).default("log"),
   SMTP_HOST: z.string().default(""),

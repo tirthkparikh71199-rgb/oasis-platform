@@ -205,8 +205,38 @@ async function tick() {
     await sendDailyReport();
     await sendDueCampaigns(dbs(), cfg.SESSION_SECRET, cfg.APP_URL);
     await pollInbox();
+    await checkBillingUsage();
   } catch (err) {
     log.error({ err }, "tick failed");
+  }
+}
+
+async function checkBillingUsage() {
+  const db = dbs();
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const [result] = await db
+    .select({ count: sql<number>`coalesce(sum(${schema.campaigns.sentCount}), 0)::int` })
+    .from(schema.campaigns)
+    .where(sql`${schema.campaigns.createdAt} >= ${monthStart} AND ${schema.campaigns.status} = 'SENT'`);
+
+  const used = result?.count ?? 0;
+  const limit = 1000;
+  const percentage = Math.round((used / limit) * 100);
+
+  if (percentage >= 80) {
+    const cfg = env();
+    const email = createEmailProvider();
+    if (email.isConfigured() && cfg.ADMIN_ALERT_EMAIL) {
+      const level = percentage >= 100 ? "STOPPED" : percentage >= 95 ? "CRITICAL" : "WARNING";
+      await email.send({
+        to: cfg.ADMIN_ALERT_EMAIL,
+        subject: `[Oasis Impex] WhatsApp Marketing ${level} — ${percentage}% used`,
+        text: `Marketing conversations: ${used}/${limit} (${percentage}%)\nRemaining: ${limit - used}\n\n${percentage >= 100 ? "AI STOPPED marketing messages. Service conversations continue." : "Approaching limit."}`,
+      });
+      log.info({ used, percentage, level }, "billing alert sent");
+    }
   }
 }
 
