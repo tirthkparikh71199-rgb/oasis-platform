@@ -1,0 +1,24 @@
+{
+  "name": "@oasis/worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test:unit": "vitest run src"
+  },
+  "dependencies": {
+    "@oasis/config": "workspace:*",
+    "@oasis/db": "workspace:*",
+    "@oasis/logger": "workspace:*",
+    "@oasis/messaging": "workspace:*",
+    "drizzle-orm": "^0.38.3"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

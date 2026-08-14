@@ -1,0 +1,13 @@
+# Oasis Impex — Caddy reverse proxy
+# oasisimpex.in is the production domain; the DuckDNS hostname is the
+# pre-DNS handover launch URL. Caddy only serves sites whose DNS resolves.
+
+oasisimpex.in, www.oasisimpex.in {
+	encode zstd gzip
+	reverse_proxy web:3000
+}
+
+oasisimpex.duckdns.org {
+	encode zstd gzip
+	reverse_proxy web:3000
+}

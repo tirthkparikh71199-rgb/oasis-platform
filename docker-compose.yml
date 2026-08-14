@@ -1,0 +1,94 @@
+name: oasis-platform
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-oasis}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oasis}
+      POSTGRES_DB: ${POSTGRES_DB:-oasis}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-oasis} -d ${POSTGRES_DB:-oasis}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-oasis}:${POSTGRES_PASSWORD:-oasis}@db:5432/${POSTGRES_DB:-oasis}
+      DATABASE_URL_READONLY: postgresql://${POSTGRES_USER:-oasis}:${POSTGRES_PASSWORD:-oasis}@db:5432/${POSTGRES_DB:-oasis}
+      APP_URL: ${APP_URL:-https://oasisimpex.duckdns.org}
+      NEXT_PUBLIC_APP_URL: ${APP_URL:-https://oasisimpex.duckdns.org}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      AI_MODEL: ${AI_MODEL:-gemini-2.0-flash}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      EMBEDDING_MODEL: ${EMBEDDING_MODEL:-gemini-embedding-001}
+      EMBEDDING_DIM: ${EMBEDDING_DIM:-768}
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-log}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-Oasis Impex <no-reply@oasisimpex.in>}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-info@oasisimpex.in}
+      ADMIN_ALERT_EMAIL: ${ADMIN_ALERT_EMAIL:-}
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-sandbox}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@oasisimpex.in}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
+    volumes:
+      - uploads:/repo/apps/web/public/uploads
+    expose:
+      - "3000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-oasis}:${POSTGRES_PASSWORD:-oasis}@db:5432/${POSTGRES_DB:-oasis}
+      APP_URL: ${APP_URL:-https://oasisimpex.duckdns.org}
+      EMAIL_TRANSPORT: ${EMAIL_TRANSPORT:-log}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-465}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_FROM: ${EMAIL_FROM:-Oasis Impex <no-reply@oasisimpex.in>}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-info@oasisimpex.in}
+      ADMIN_ALERT_EMAIL: ${ADMIN_ALERT_EMAIL:-}
+    command: ["sh", "-c", "pnpm --filter @oasis/worker start"]
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  uploads:
+  caddy_data:
+  caddy_config:
