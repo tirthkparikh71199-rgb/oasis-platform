@@ -24,6 +24,7 @@ export default async function AdminChatsPage() {
       status: schema.conversations.status,
       createdAt: schema.conversations.createdAt,
       updatedAt: schema.conversations.updatedAt,
+      metadata: schema.conversations.metadata,
       lastMessage: schema.messages.content,
       lastSender: schema.messages.senderType,
     })
@@ -102,6 +103,9 @@ export default async function AdminChatsPage() {
               convs.map((c) => {
                 const unreadCount = unreadMap.get(c.id) ?? 0;
                 const pendingHandoff = handoffMap.get(c.id) ?? 0;
+                const meta = (c.metadata ?? {}) as { phone?: string; whatsappName?: string };
+                const visitorLabel =
+                  c.channel === "WHATSAPP" ? (meta.whatsappName || meta.phone || "WhatsApp visitor") : c.channel === "EMAIL" ? "Email sender" : "Website visitor";
                 const preview = c.lastMessage
                   ? `${c.lastSender === "USER" ? "Visitor" : c.lastSender === "AGENT" ? "You" : "Bot"}: ${c.lastMessage.slice(0, 80)}`
                   : "No messages";
@@ -109,7 +113,7 @@ export default async function AdminChatsPage() {
                   <tr key={c.id} className={`hover:bg-white/[0.02] ${c.status === "RESOLVED" ? "opacity-50" : ""}`}>
                     <td className="px-4 py-3">
                       <Link href={`/admin/chats/${c.id}`} className="font-semibold text-slate-200 hover:text-accent">
-                        {c.channel === "WEB" ? "Website visitor" : CHANNEL_LABEL[c.channel]} · {new Date(c.updatedAt).toLocaleString()}
+                        {visitorLabel} · {new Date(c.updatedAt).toLocaleString()}
                       </Link>
                       {pendingHandoff > 0 ? (
                         <span className="ml-2 rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-semibold text-red-300">
