@@ -24,6 +24,7 @@ const NAV: NavItem[] = [
   { href: "/admin/email-controls", label: "Email Controls", perm: "campaigns.read" },
   { href: "/admin/testimonials", label: "Testimonials", perm: "settings.read" },
   { href: "/admin/analytics", label: "Analytics", perm: "analytics.read" },
+  { href: "/admin/reports", label: "Reports", perm: "analytics.read" },
   { href: "/admin/content", label: "Website Content", perm: "settings.read" },
   { href: "/admin/reminders", label: "Follow-ups & Tasks", perm: "leads.read" },
   { href: "/admin/audit", label: "Audit Log", perm: "settings.read" },
