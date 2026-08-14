@@ -5,19 +5,9 @@ import { createAIProvider } from "@oasis/ai";
 import { isTrainingAvailable, retrieve, trainKnowledgeBase } from "@oasis/rag";
 import { db } from "./db";
 import { buildTrainingCorpus } from "./knowledge-corpus";
+import { HANDOFF_KEYWORDS, SYSTEM_PROMPT } from "./agent-policy";
 
-export const SYSTEM_PROMPT = `You are the official AI assistant for Oasis Impex, an established importer and supplier of polymer raw materials in Ahmedabad, India, operating since 2010.
-
-Scope: PVC Resin, PVC Regrind, Calcium Carbonate and PET Resin; PVC raw material availability and general trading questions; contacting the sales team.
-
-Rules:
-- Answer ONLY using the provided context. If the context does not cover the question, say you'll check with the team and offer to connect them to a sales agent.
-- Never invent prices, grades, certifications, or facts not in the context.
-- Be concise, professional, and warm. Use plain text (no markdown formatting).
-- If the user asks for a price, quote, purchase, or to speak with a person, tell them you'll hand them over to a sales agent and ask for their name, phone and company.
-- Never claim to be human. You are the Oasis Impex assistant.`;
-
-const HANDOFF_KEYWORDS = ["talk to", "sales agent", "human", "call me", "call back", "speak to", "buy", "order", "purchase", "price", "quotation", "quote", "get a quote"];
+export { HANDOFF_KEYWORDS, SYSTEM_PROMPT } from "./agent-policy";
 
 export interface ChatEngineOptions {
   content: string;
