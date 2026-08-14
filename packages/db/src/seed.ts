@@ -34,6 +34,11 @@ const PERMISSION_SEEDS = [
   ["seo.read", "View SEO pages"],
   ["seo.write", "Edit SEO pages"],
   ["audit.read", "View audit logs"],
+  ["requests.read", "View product requests"],
+  ["requests.write", "Update product request status and notes"],
+  ["analytics.read", "View analytics dashboard"],
+  ["campaigns.read", "View email campaigns"],
+  ["campaigns.write", "Create and send email campaigns"],
   ["system.monitor", "View system health and jobs"],
   ["integrations.manage", "Configure integrations"],
 ] as const;
@@ -41,12 +46,12 @@ const PERMISSION_SEEDS = [
 const ROLE_PERMISSIONS: Record<string, string[]> = {
   SUPER_ADMIN: PERMISSION_SEEDS.map(([code]) => code),
   ADMIN: PERMISSION_SEEDS.filter(([code]) => !["roles.manage", "users.deactivate", "integrations.manage"].includes(code)).map(([code]) => code),
-  SALES: ["catalog.read", "partners.read", "partners.write", "leads.read", "leads.write", "leads.export", "orders.read", "orders.write", "chat.read", "chat.reply", "handoffs.manage", "knowledge.read", "reports.read"],
-  ANALYST: ["catalog.read", "inventory.read", "partners.read", "partners.write", "leads.read", "leads.write", "orders.read", "orders.write", "knowledge.read"],
-  INVENTORY_MANAGER: ["catalog.read", "catalog.write", "inventory.read", "inventory.write", "inventory.manage", "partners.read", "knowledge.read"],
+  SALES: ["catalog.read", "partners.read", "partners.write", "leads.read", "leads.write", "leads.export", "orders.read", "chat.read", "chat.reply", "handoffs.manage", "knowledge.read", "requests.read", "requests.write", "analytics.read", "campaigns.read"],
+  ANALYST: ["catalog.read", "partners.read", "partners.write", "leads.read", "leads.write", "orders.read", "knowledge.read", "requests.read", "analytics.read", "campaigns.read", "reports.read"],
+  INVENTORY_MANAGER: ["catalog.read", "catalog.write", "partners.read", "knowledge.read"],
   KNOWLEDGE_MANAGER: ["catalog.read", "knowledge.read", "knowledge.write", "knowledge.publish", "seo.read", "seo.write"],
-  AGENT: ["catalog.read", "leads.read", "chat.read", "chat.reply", "handoffs.manage", "knowledge.read"],
-  VIEWER: ["catalog.read", "inventory.read", "partners.read", "leads.read", "chat.read", "knowledge.read", "reports.read", "orders.read"],
+  AGENT: ["catalog.read", "leads.read", "chat.read", "chat.reply", "handoffs.manage", "knowledge.read", "requests.read"],
+  VIEWER: ["catalog.read", "partners.read", "leads.read", "chat.read", "knowledge.read", "requests.read", "analytics.read", "reports.read", "orders.read"],
 };
 
 type ProductSeed = {
@@ -69,22 +74,22 @@ const PRODUCT_SEEDS: ProductSeed[] = [
   {
     name: "PVC Resin K67",
     slug: "pvc-resin-k67",
-    sku: "PVC-K67",
+    sku: "OASIS-PVC-K67",
     category: "PVC RESIN",
-    shortDescription: "Suspension PVC resin, general purpose K67 grade for rigid pipes and profiles.",
-    description: "Premium suspension grade PVC resin (K-value 67) imported from established producers in Thailand, China and beyond. Consistent quality, excellent thermal stability and processing characteristics for pipes, profiles and fittings.",
-    specifications: { "K-Value": "66–68", "Particle Size (D50)": "80–150 µm", "Bulk Density": "0.50–0.60 g/cm³", "Viscosity Number": "82–90" },
-    applications: ["Rigid pipes", "Profiles", "Fittings", "Electrical conduits"],
-    industries: ["Pipe manufacturing", "Profile extrusion"],
-    origin: "Thailand / China / global import",
-    packaging: "25 kg bags",
+    shortDescription: "Suspension-grade PVC resin (SG5/K67) for pipe, profile and fittings manufacturing. K-value 66-68, 99%+ purity.",
+    description: "PVC Resin K67 (SG5 grade) is the most widely used suspension-grade polyvinyl chloride resin for pipe, profile and fittings manufacturing. Imported from established producers in China, Korea and Europe. Consistent quality, excellent thermal stability and processing characteristics.\n\nKey Applications: PVC pipes and fittings (pressure and non-pressure), PVC profiles for windows and doors, conduit pipes, technical mouldings.\n\nPackaging: 25 kg PE-lined kraft bags, 40 bags per pallet. MOQ: 20 MT (1 container). Lead time: 15-20 days from confirmation.",
+    specifications: { "K-value": "66-68 (ISO 1628-2)", "Purity": "≥99%", "Bulk Density": "0.50-0.60 g/ml", "Volatile Matter": "≤0.3%", "Fish Eyes": "≤20/400cm²", "Viscosity Number": "107-118 ml/g" },
+    applications: ["PVC Pipes", "PVC Profiles", "Conduit Pipes", "Fittings", "Technical Mouldings"],
+    industries: ["Pipe manufacturing", "Profile extrusion", "Construction"],
+    origin: "China, Korea, Europe",
+    packaging: "25 kg PE-lined kraft bags",
     unit: "MT",
-    moq: "As negotiated",
+    moq: "20 MT",
   },
   {
     name: "PVC Resin K57",
     slug: "pvc-resin-k57",
-    sku: "PVC-K57",
+    sku: "OASIS-PVC-K57",
     category: "PVC RESIN",
     shortDescription: "Suspension PVC resin K57 for flexible and semi-rigid applications.",
     description: "Low-K suspension PVC resin with excellent plasticiser absorption, ideal for flexible compounds, flooring and hoses.",
@@ -192,13 +197,15 @@ async function main() {
   const e = env();
   const db = createDb();
 
-  const roles = await db
+  await db
     .insert(schema.roles)
     .values(Object.keys(ROLE_PERMISSIONS).map((name) => ({ name: name as typeof schema.roles.$inferSelect.name, description: `${name.replaceAll("_", " ")} role` })))
-    .onConflictDoNothing({ target: schema.roles.name })
-    .returning();
+    .onConflictDoNothing({ target: schema.roles.name });
 
-  const roleId = new Map(roles.map((r) => [r.name, r.id]));
+  // Read back ALL roles (not just newly-inserted ones) so the seed is idempotent
+  // — re-running on a DB that already has roles must not fail.
+  const allRoles = await db.select({ id: schema.roles.id, name: schema.roles.name }).from(schema.roles);
+  const roleId = new Map(allRoles.map((r) => [r.name, r.id]));
   const missing = Object.keys(ROLE_PERMISSIONS).filter((n) => !roleId.has(n as never));
   if (missing.length) throw new Error(`Failed to seed roles: ${missing.join(", ")}`);
 

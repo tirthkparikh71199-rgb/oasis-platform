@@ -1,4 +1,39 @@
 import { z } from "zod";
+import { readFileSync, existsSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+// Load the monorepo root .env (web app, worker, scripts all start from different
+// cwd's — resolve relative to this file: packages/config/src/env.ts → root is ../../../)
+function loadRootDotenv(): Record<string, string> {
+  try {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const rootEnv = join(here, "..", "..", "..", ".env");
+    if (!existsSync(rootEnv)) return {};
+    const out: Record<string, string> = {};
+    for (const line of readFileSync(rootEnv, "utf8").split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eq = trimmed.indexOf("=");
+      if (eq === -1) continue;
+      const key = trimmed.slice(0, eq).trim();
+      let value = trimmed.slice(eq + 1).trim();
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+      out[key] = value;
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+const dotenv = loadRootDotenv();
+
+// process.env wins over .env file values
+const merged: Record<string, string | undefined> = { ...dotenv, ...Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== undefined)) };
+
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -12,10 +47,10 @@ const envSchema = z.object({
   DATABASE_URL_READONLY: z.string().optional(),
 
   AI_PROVIDER: z.enum(["gemini", "mock"]).default("mock"),
-  AI_MODEL: z.string().default("gemini-2.0-flash"),
+  AI_MODEL: z.string().default("gemini-flash-latest"),
   GEMINI_API_KEY: z.string().default(""),
   EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
-  EMBEDDING_DIM: z.coerce.number().int().positive().default(768),
+  EMBEDDING_DIM: z.coerce.number().int().positive().default(3072),
 
   EMAIL_TRANSPORT: z.enum(["smtp", "log"]).default("log"),
   SMTP_HOST: z.string().default(""),
@@ -38,6 +73,7 @@ const envSchema = z.object({
   WHATSAPP_VERIFY_TOKEN: z.string().default(""),
   WHATSAPP_APP_SECRET: z.string().default(""),
   WHATSAPP_WEBHOOK_URL: z.string().default(""),
+  TEAM_WHATSAPP_NUMBERS: z.string().default(""),
 
   BACKUP_ENCRYPTION_KEY: z.string().default(""),
   BACKUP_REMOTE: z.string().default(""),
@@ -58,7 +94,7 @@ const envSchema = z.object({
 
 export type Env = z.infer<typeof envSchema>;
 
-export function loadEnv(source: Record<string, string | undefined> = process.env): Env {
+export function loadEnv(source: Record<string, string | undefined> = merged): Env {
   const parsed = envSchema.safeParse(source);
   if (!parsed.success) {
     const issues = parsed.error.issues

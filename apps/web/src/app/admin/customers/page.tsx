@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { schema } from "@oasis/db";
 import { db } from "@/lib/db";
-import { deleteCustomer } from "./actions";
+import { deleteCustomer, importCustomers } from "./actions";
 import { CustomerForm } from "./customer-form";
+import { CustomerProfile } from "./customer-profile";
 
 export const metadata = { title: "Customers | Oasis Impex Admin" };
 
@@ -12,16 +13,31 @@ const STATUS_STYLES: Record<string, string> = {
   INACTIVE: "bg-slate-500/10 text-slate-400",
 };
 
-export default async function AdminCustomersPage({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
-  const { edit } = await searchParams;
+export default async function AdminCustomersPage({ searchParams }: { searchParams: Promise<{ edit?: string; email?: string; add?: string; imported?: string; import?: string }> }) {
+  const { edit, email, add, imported, import: importErr } = await searchParams;
   const customers = await db().select().from(schema.customers).orderBy(schema.customers.createdAt);
   const editing = edit ? customers.find((c) => c.id === edit) : undefined;
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white">Customers</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-white">Customers</h1>
+        <div className="flex items-center gap-2">
+          <form action={importCustomers} className="flex items-center gap-2">
+            <input type="file" name="file" accept=".csv,text/csv" className="max-w-[180px] text-xs text-slate-400 file:mr-2 file:rounded-lg file:border file:border-white/10 file:bg-white/5 file:px-2.5 file:py-1.5 file:text-xs file:text-slate-300" />
+            <button className="rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white">Import CSV</button>
+          </form>
+          <a href="/api/customers/export" className="rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white">
+            Export CSV
+          </a>
+        </div>
+      </div>
+      {imported ? <p className="mt-3 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">Imported {imported} customer(s).</p> : null}
+      {importErr ? <p className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300">Could not import — check the CSV has a "name" column and at least one row.</p> : null}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_360px]">
+      {email ? <div className="mt-5"><CustomerProfile email={email} /></div> : null}
+
+      <div className={email ? "mt-5 grid gap-6 lg:grid-cols-[1fr_360px]" : "mt-6 grid gap-6 lg:grid-cols-[1fr_360px]"}>
         <div className="overflow-x-auto rounded-xl border border-white/10">
           <table className="w-full text-left text-sm">
             <thead className="bg-white/[0.04] text-xs uppercase tracking-wide text-slate-400">
@@ -76,7 +92,7 @@ export default async function AdminCustomersPage({ searchParams }: { searchParam
             </tbody>
           </table>
         </div>
-        <CustomerForm customer={editing} />
+        <CustomerForm customer={editing ?? (add && email ? { email } : undefined)} />
       </div>
     </div>
   );

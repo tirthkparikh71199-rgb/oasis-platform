@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@oasis/config": "workspace:*",
+    "@oasis/db": "workspace:*",
     "@oasis/logger": "workspace:*",
+    "drizzle-orm": "^0.38.3",
     "nodemailer": "^6.9.16"
   },
   "devDependencies": {

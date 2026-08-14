@@ -3,7 +3,9 @@ import { eq } from "drizzle-orm";
 import { schema } from "@oasis/db";
 import { contactFormSchema } from "@oasis/domain";
 import { db } from "@/lib/db";
+import { notifyTeam } from "@/lib/notify";
 import { createEmailProvider } from "@oasis/messaging";
+import { env } from "@oasis/config";
 import { createLogger } from "@oasis/logger";
 
 const log = createLogger("api-inquiries");
@@ -81,6 +83,15 @@ export async function POST(req: NextRequest) {
           text: INQUIRY_EMAIL_TEMPLATE({ ...d, product: product[0]?.name }),
         })
       : null;
+
+    await notifyTeam("New lead inquiry", [
+      { label: "Name", value: d.name },
+      { label: "Company", value: d.company },
+      { label: "Phone", value: d.phone },
+      { label: "Email", value: d.email },
+      { label: "Product", value: product[0]?.name },
+      { label: "Message", value: d.message },
+    ], `Open: ${env().APP_URL ?? "http://localhost:3000"}/admin/inquiries`);
 
     let autoReplySent = false;
     if (d.email && email.isConfigured()) {

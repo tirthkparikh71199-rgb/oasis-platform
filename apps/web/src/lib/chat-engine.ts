@@ -5,24 +5,15 @@ import { createAIProvider } from "@oasis/ai";
 import { isTrainingAvailable, retrieve, trainKnowledgeBase } from "@oasis/rag";
 import { db } from "./db";
 import { buildTrainingCorpus } from "./knowledge-corpus";
+import { HANDOFF_KEYWORDS, SYSTEM_PROMPT, isGreeting, containsProfanity, PROFANITY_REPLY, isOutOfScope, OUT_OF_SCOPE_REPLY, isPricingIntent, QUOTE_SUFFIX } from "./agent-policy";
+import { notifyTeam } from "./notify";
 
-export const SYSTEM_PROMPT = `You are the official AI assistant for Oasis Impex, an established importer and supplier of polymer raw materials in Ahmedabad, India, operating since 2010.
-
-Scope: PVC Resin, PVC Regrind, Calcium Carbonate and PET Resin; PVC raw material availability and general trading questions; contacting the sales team.
-
-Rules:
-- Answer ONLY using the provided context. If the context does not cover the question, say you'll check with the team and offer to connect them to a sales agent.
-- Never invent prices, grades, certifications, or facts not in the context.
-- Be concise, professional, and warm. Use plain text (no markdown formatting).
-- If the user asks for a price, quote, purchase, or to speak with a person, tell them you'll hand them over to a sales agent and ask for their name, phone and company.
-- Never claim to be human. You are the Oasis Impex assistant.`;
-
-const HANDOFF_KEYWORDS = ["talk to", "sales agent", "human", "call me", "call back", "speak to", "buy", "order", "purchase", "price", "quotation", "quote", "get a quote"];
+export { HANDOFF_KEYWORDS, SYSTEM_PROMPT } from "./agent-policy";
 
 export interface ChatEngineOptions {
   content: string;
   conversationId?: string | null;
-  channel: "WEB" | "WHATSAPP";
+  channel: "WEB" | "WHATSAPP" | "EMAIL";
   externalId?: string | null;
   page?: string;
 }
@@ -97,15 +88,83 @@ export async function runChatEngine(opts: ChatEngineOptions): Promise<ChatEngine
 
   await dbs.insert(schema.messages).values({ conversationId: convId, senderType: "USER", channel, direction: "INBOUND", content });
 
+  // Greetings / acknowledgements get a warm, deterministic reply — never RAG
+  // (which would surface unrelated pricing/product context for a plain "hi").
+  if (isGreeting(content)) {
+    const greetingReply =
+      "Hello! Welcome to Oasis Impex. We supply PVC Resin, PVC Regrind, Calcium Carbonate and PET Resin. How can I help you today?";
+    await dbs.insert(schema.messages).values({ conversationId: convId, senderType: "BOT", channel, direction: "OUTBOUND", content: greetingReply });
+    return { reply: greetingReply, conversationId: convId, handoffCreated: false, sources: [] };
+  }
+
+  // Block abusive/profane input with a polite redirect — never sent to the AI.
+  if (containsProfanity(content)) {
+    await dbs.insert(schema.messages).values({ conversationId: convId, senderType: "BOT", channel, direction: "OUTBOUND", content: PROFANITY_REPLY });
+    return { reply: PROFANITY_REPLY, conversationId: convId, handoffCreated: false, sources: [] };
+  }
+
+  // Clearly out-of-scope questions get a deterministic, polite refusal — never
+  // routed through RAG/AI (which can drift into an off-topic answer or pitch).
+  if (isOutOfScope(content)) {
+    await dbs.insert(schema.messages).values({ conversationId: convId, senderType: "BOT", channel, direction: "OUTBOUND", content: OUT_OF_SCOPE_REPLY });
+    return { reply: OUT_OF_SCOPE_REPLY, conversationId: convId, handoffCreated: false, sources: [] };
+  }
+
+  // Capture contact details (email / phone) the customer shares, attach them to
+  // the conversation, and email the team so a sales agent can follow up.
+  const emailMatch = content.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+  const phoneMatch = content.match(/(?:\+?\d[\d\s-]{7,}\d)/);
+  if (emailMatch || phoneMatch) {
+    const capturedEmail = emailMatch?.[0];
+    const capturedPhone = phoneMatch?.[0]?.replace(/\s+/g, "");
+    try {
+      const [conv] = await dbs.select({ metadata: schema.conversations.metadata }).from(schema.conversations).where(eq(schema.conversations.id, convId)).limit(1);
+      const meta = (conv?.metadata as Record<string, unknown>) ?? {};
+      await dbs
+        .update(schema.conversations)
+        .set({ metadata: { ...meta, ...(capturedEmail ? { email: capturedEmail } : {}), ...(capturedPhone ? { phone: capturedPhone } : {}) } })
+        .where(eq(schema.conversations.id, convId));
+      void notifyTeam(
+        "Customer shared contact details",
+        [
+          { label: "Channel", value: channel },
+          { label: "Email", value: capturedEmail },
+          { label: "Phone", value: capturedPhone },
+          { label: "Message", value: content.slice(0, 300) },
+        ],
+        `Open: /admin/chats/${convId}`,
+        { email: true },
+      );
+    } catch {
+      // best-effort; never block the reply on capture
+    }
+  }
+
   const ai = createAIProvider();
   const contexts = await retrieve({ query: content, visibility: "PUBLIC", limit: 4 });
   const contextBlock = contexts.map((c) => `[${c.title}] ${c.text}`).join("\n\n");
-  const needsHandoff = HANDOFF_KEYWORDS.some((k) => content.toLowerCase().includes(k));
+  // A greeting or acknowledgement never triggers a sales hand-off, even if it
+  // happens to contain a keyword-like substring.
+  const lower = content.toLowerCase();
+  const needsHandoff = !isGreeting(content) && HANDOFF_KEYWORDS.some((k) => lower.includes(k));
+
+  // Load recent conversation history so the AI answers the LATEST message with
+  // full context (a greeting mid-conversation shouldn't reset the thread).
+  const history = await dbs
+    .select({ senderType: schema.messages.senderType, content: schema.messages.content })
+    .from(schema.messages)
+    .where(eq(schema.messages.conversationId, convId))
+    .orderBy(schema.messages.createdAt);
+  const priorTurns = history
+    .filter((m) => m.senderType === "USER" || m.senderType === "BOT")
+    .slice(-8, -1) // last few turns, excluding the message we just inserted
+    .map((m) => ({ role: m.senderType === "USER" ? ("user" as const) : ("assistant" as const), content: m.content }));
 
   const reply = await ai.chat(
     [
       { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: `Context:\n${contextBlock || "(no context retrieved)"}\n\nQuestion: ${content}` },
+      ...priorTurns,
+      { role: "user", content: `Context about Oasis Impex:\n${contextBlock || "(no specific context retrieved)"}\n\nRespond to the customer's latest message: ${content}` },
     ],
     { maxOutputTokens: 320 },
   );
@@ -124,10 +183,21 @@ export async function runChatEngine(opts: ChatEngineOptions): Promise<ChatEngine
     });
 
   let replyText = reply.text;
+
+  // If the customer showed pricing/buying intent but the reply didn't offer a
+  // quote or ask for contact details, append that ask so no lead is dropped.
+  if (isPricingIntent(content) && !/(quot|share your|name.*(phone|email)|sales team|get back)/i.test(replyText)) {
+    replyText = `${replyText}${QUOTE_SUFFIX}`;
+  }
+
   let handoffCreated = false;
   if (needsHandoff) {
-    if (!/(provide|share|give).*?(name|phone|number|contact)/i.test(reply.text)) {
-      replyText = `${reply.text} I can have a sales agent call you back — just share your name and phone number here.`;
+    // Always make sure the hand-off reply asks for the customer's contact
+    // details (name, email, phone) so the sales team can follow up.
+    if (!/(name|phone|email|contact)/i.test(replyText)) {
+      replyText = `${replyText} To connect you with our sales team, please share your name, email and phone number and we'll get back to you shortly.`;
+    } else if (!/email/i.test(replyText)) {
+      replyText = `${replyText} Please also share your email so we can send you the details.`;
     }
     const [handoff] = await dbs
       .insert(schema.handoffs)
@@ -135,6 +205,18 @@ export async function runChatEngine(opts: ChatEngineOptions): Promise<ChatEngine
       .returning();
     handoffCreated = Boolean(handoff);
     await dbs.insert(schema.auditLogs).values({ actorType: "SYSTEM", action: "HANDOFF_CREATED", entity: "handoffs", entityId: handoff.id, metadata: { source: channel } });
+    // On hand-off, email the team (this is a genuine sales lead, unlike the
+    // per-message "new WhatsApp lead" alert which is intentionally email-silent).
+    void notifyTeam(
+      "Chat hand-off — customer wants a human",
+      [
+        { label: "Channel", value: channel },
+        { label: "Customer message", value: content.slice(0, 300) },
+        { label: "AI summary", value: replyText.slice(0, 300) },
+      ],
+      `Open: /admin/chats/${convId}`,
+      { email: true },
+    );
   }
 
   await dbs.insert(schema.messages).values({ conversationId: convId, senderType: "BOT", channel, direction: "OUTBOUND", content: replyText });

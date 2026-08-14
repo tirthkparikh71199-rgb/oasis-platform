@@ -40,22 +40,35 @@ export class MetaWhatsAppProvider implements WhatsAppProvider {
 
   async send(msg: WhatsAppMessage): Promise<{ messageId: string }> {
     if (!this.isConfigured()) throw new Error("Meta WhatsApp not configured");
-    const res = await fetch(
-      `https://graph.facebook.com/v19.0/${this.cfg.WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.cfg.WHATSAPP_ACCESS_TOKEN}`,
-          "Content-Type": "application/json",
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 10_000);
+    let res: Response;
+    try {
+      res = await fetch(
+        `https://graph.facebook.com/v19.0/${this.cfg.WHATSAPP_PHONE_NUMBER_ID}/messages`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${this.cfg.WHATSAPP_ACCESS_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            to: msg.to,
+            type: "text",
+            text: { body: msg.text },
+          }),
+          signal: controller.signal,
         },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: msg.to,
-          type: "text",
-          text: { body: msg.text },
-        }),
-      },
-    );
+      );
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") {
+        throw new Error("Meta WhatsApp request timed out after 10000ms");
+      }
+      throw err;
+    } finally {
+      clearTimeout(timer);
+    }
     if (!res.ok) {
       const body = await res.text();
       throw new Error(`Meta WhatsApp failed (${res.status}): ${body.slice(0, 200)}`);

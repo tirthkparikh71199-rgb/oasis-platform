@@ -45,23 +45,35 @@ export function InquiryCard(props: InquiryCardProps) {
           </p>
           {props.message ? <p className="mt-2 line-clamp-3 text-sm text-slate-300">{props.message}</p> : null}
         </div>
-        <form action={updateInquiryStatus} className="flex items-center gap-2">
-          <input type="hidden" name="id" value={props.id} />
-          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLES[props.status]}`}>{props.status}</span>
-          <select
-            name="status"
-            defaultValue={props.status}
-            onChange={(e) => e.target.form?.requestSubmit()}
-            className="rounded-lg border border-white/10 bg-slate-950/60 px-2 py-1.5 text-xs text-white outline-none focus:border-accent"
-          >
-            <option>NEW</option>
-            <option>CONTACTED</option>
-            <option>QUALIFIED</option>
-            <option>IN_PROGRESS</option>
-            <option>CONVERTED</option>
-            <option>CLOSED</option>
-          </select>
-        </form>
+        <div className="flex flex-col items-end gap-2">
+          <form action={updateInquiryStatus} className="flex items-center gap-2">
+            <input type="hidden" name="id" value={props.id} />
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STATUS_STYLES[props.status]}`}>{props.status}</span>
+            <select
+              name="status"
+              defaultValue={props.status}
+              onChange={(e) => e.target.form?.requestSubmit()}
+              className="rounded-lg border border-white/10 bg-slate-950/60 px-2 py-1.5 text-xs text-white outline-none focus:border-accent"
+            >
+              <option>NEW</option>
+              <option>CONTACTED</option>
+              <option>QUALIFIED</option>
+              <option>IN_PROGRESS</option>
+              <option>CONVERTED</option>
+              <option>CLOSED</option>
+            </select>
+          </form>
+          <div className="flex items-center gap-2 text-xs">
+            <a href={`/admin/reminders?inquiry=${props.id}&title=Follow up ${encodeURIComponent(props.name)}`} className="rounded-lg border border-white/10 px-2.5 py-1.5 text-slate-300 hover:text-white">
+              + Follow-up
+            </a>
+            {props.email ? (
+              <a href={`/admin/customers?email=${encodeURIComponent(props.email)}`} className="rounded-lg border border-white/10 px-2.5 py-1.5 text-slate-300 hover:text-white">
+                360° view
+              </a>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -8,7 +8,6 @@ interface OrderInput {
   productId?: string | null;
   quantity?: string | null;
   unit?: string | null;
-  amount?: string | null;
   status?: string | null;
   expectedDate?: string | null;
   notes?: string | null;
@@ -84,17 +83,6 @@ export function OrderForm({
               name="unit"
               placeholder="MT"
               defaultValue={order?.unit ?? ""}
-              className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-accent"
-            />
-          </label>
-          <label className="block">
-            <span className="text-xs font-medium text-slate-300">Amount (optional)</span>
-            <input
-              name="amount"
-              type="number"
-              step="0.01"
-              min="0"
-              defaultValue={order?.amount ?? ""}
               className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-accent"
             />
           </label>

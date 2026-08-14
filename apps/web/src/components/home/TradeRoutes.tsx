@@ -42,8 +42,10 @@ const byId = new Map(NODES.map((n) => [n.id, n]));
 
 export function TradeRoutes() {
   return (
-    <div className="pointer-events-none absolute inset-0" aria-hidden>
-      <svg viewBox="0 0 560 460" className="h-full w-full opacity-90" fill="none">
+    // Confined to the right half on large screens so the sourcing map never
+    // collides with the left-aligned hero text; hidden on small screens.
+    <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-full lg:block lg:w-[52%]" aria-hidden>
+      <svg viewBox="0 0 560 460" className="h-full w-full opacity-80" fill="none" preserveAspectRatio="xMidYMid meet">
         <defs>
           <radialGradient id="orb-in" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#1c6fe8" stopOpacity="0.5" />

@@ -1,7 +1,33 @@
+import dns from "node:dns";
 import type { AIProvider, ChatMessage, ChatOptions, ChatResult, EmbedOptions, EmbedResult } from "./types";
+
+// Node 18+ resolves IPv6 (AAAA) first by default. On many hosts the IPv6 route to
+// Google's API stalls, so the first fetch hangs until it slowly falls back to IPv4.
+// Forcing IPv4-first makes outbound Gemini calls connect immediately and reliably.
+try {
+  dns.setDefaultResultOrder("ipv4first");
+} catch {
+  // older Node without this API — safe to ignore
+}
 
 const GENERATE_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 const EMBED_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
+const REQUEST_TIMEOUT_MS = 15_000;
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = REQUEST_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error(`Gemini request timed out after ${timeoutMs}ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export class GeminiAIProvider implements AIProvider {
   readonly name = "gemini";
@@ -21,11 +47,11 @@ export class GeminiAIProvider implements AIProvider {
     const start = Date.now();
     const url = `${GENERATE_ENDPOINT}/${this.model}:generateContent?key=${this.apiKey}`;
     const contents = messages.map((m) => ({
-      role: m.role === "system" ? "user" : m.role,
+      role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
 
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -37,6 +63,7 @@ export class GeminiAIProvider implements AIProvider {
         generationConfig: {
           temperature: opts.temperature ?? 0.4,
           maxOutputTokens: opts.maxOutputTokens ?? 512,
+          thinkingConfig: { thinkingBudget: 0 },
         },
       }),
     });
@@ -56,8 +83,8 @@ export class GeminiAIProvider implements AIProvider {
 
     return {
       text,
-      inputTokens: data.usageMetadata?.promptTokenCount ?? 0,
-      outputTokens: data.usageMetadata?.candidatesTokenCount ?? 0,
+      inputTokens: Math.ceil(data.usageMetadata?.promptTokenCount ?? 0),
+      outputTokens: Math.ceil(data.usageMetadata?.candidatesTokenCount ?? 0),
       latencyMs: Date.now() - start,
     };
   }
@@ -65,7 +92,7 @@ export class GeminiAIProvider implements AIProvider {
   async embed(text: string, opts: EmbedOptions = {}): Promise<EmbedResult> {
     const start = Date.now();
     const url = `${EMBED_ENDPOINT}/${this.embedModel}:embedContent?key=${this.apiKey}`;
-    const res = await fetch(url, {
+    const res = await fetchWithTimeout(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -84,6 +111,6 @@ export class GeminiAIProvider implements AIProvider {
     const embedding = data.embedding?.values;
     if (!embedding) throw new Error("Gemini returned no embedding");
 
-    return { embedding, inputTokens: data.usageMetadata?.promptTokenCount ?? 0, latencyMs: Date.now() - start };
+    return { embedding, inputTokens: Math.ceil(data.usageMetadata?.promptTokenCount ?? 0), latencyMs: Date.now() - start };
   }
 }

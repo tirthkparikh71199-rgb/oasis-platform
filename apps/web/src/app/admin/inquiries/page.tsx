@@ -27,8 +27,15 @@ export default async function AdminInquiriesPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white">Inquiries</h1>
-      <p className="mt-1 text-sm text-slate-400">{inquiries.length} total. Change status to track the pipeline.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Inquiries</h1>
+          <p className="mt-1 text-sm text-slate-400">{inquiries.length} total. Change status to track the pipeline.</p>
+        </div>
+        <a href="/api/inquiries/export" className="rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-slate-300 hover:text-white">
+          Export CSV
+        </a>
+      </div>
 
       <div className="mt-6 space-y-3">
         {inquiries.length === 0 ? (

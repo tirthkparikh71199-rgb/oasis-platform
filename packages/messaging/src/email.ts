@@ -11,6 +11,7 @@ export interface EmailMessage {
   html?: string;
   replyTo?: string;
   cc?: string[];
+  headers?: Record<string, string>;
 }
 
 export interface EmailProvider {
@@ -55,6 +56,7 @@ export class SmtpEmailProvider implements EmailProvider {
       subject: msg.subject,
       text: msg.text,
       html: msg.html,
+      headers: msg.headers,
     });
     return { messageId: info.messageId };
   }

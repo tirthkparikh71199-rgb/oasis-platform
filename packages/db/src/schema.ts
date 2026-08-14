@@ -63,6 +63,14 @@ export const stockStatusEnum = pgEnum("stock_status", [
   "IN_TRANSIT",
 ]);
 
+export const productRequestStatusEnum = pgEnum("product_request_status", [
+  "NEW",
+  "QUOTING",
+  "ORDERED",
+  "AVAILABLE",
+  "DECLINED",
+]);
+
 export const movementTypeEnum = pgEnum("movement_type", [
   "RECEIVED",
   "TRANSFERRED",
@@ -113,6 +121,16 @@ export const integrationStatusEnum = pgEnum("integration_status", [
   "ERROR",
 ]);
 
+export const campaignStatusEnum = pgEnum("campaign_status", [
+  "DRAFT",
+  "SCHEDULED",
+  "SENDING",
+  "SENT",
+  "FAILED",
+]);
+
+export const campaignChannelEnum = pgEnum("campaign_channel", ["EMAIL", "WHATSAPP"]);
+
 // ---------------------------------------------------------------------------
 // Identity & Auth
 // ---------------------------------------------------------------------------
@@ -131,7 +149,7 @@ export const users = pgTable("users", {
 
 export const roles = pgTable("roles", {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: roleEnum("name").notNull().unique(),
+  name: text("name").notNull().unique(),
   description: text("description"),
 });
 
@@ -386,6 +404,8 @@ export const vendors = pgTable("vendors", {
   email: text("email"),
   phone: text("phone"),
   contactName: text("contact_name"),
+  logoUrl: text("logo_url"),
+  website: text("website"),
   status: vendorStatusEnum("status").notNull().default("ACTIVE"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -556,6 +576,185 @@ export const orders = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Product requests (leads — customers request a product we don't list)
+// ---------------------------------------------------------------------------
+
+export const productRequests = pgTable(
+  "product_requests",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    productName: text("product_name").notNull(),
+    gradeSpec: text("grade_spec"),
+    quantity: text("quantity"),
+    unit: text("unit"),
+    email: text("email"),
+    phone: text("phone"),
+    company: text("company"),
+    message: text("message"),
+    status: productRequestStatusEnum("status").notNull().default("NEW"),
+    notes: text("notes"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("product_requests_status_idx").on(t.status, t.createdAt)],
+);
+
+// ---------------------------------------------------------------------------
+// Email campaigns (customer advertisement / availability mailers)
+// ---------------------------------------------------------------------------
+
+export const campaigns = pgTable(
+  "campaigns",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    subject: text("subject").notNull(),
+    body: text("body").notNull(),
+    channel: campaignChannelEnum("channel").notNull().default("EMAIL"),
+    audience: jsonb("audience").$type<{ segment?: "ALL" | "CUSTOMERS" | "LEADS" | "SUBSCRIBERS"; customerStatus?: string; inquirySource?: string }>().default({}),
+    status: campaignStatusEnum("status").notNull().default("DRAFT"),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    totalRecipients: integer("total_recipients").notNull().default(0),
+    sentCount: integer("sent_count").notNull().default(0),
+    failedCount: integer("failed_count").notNull().default(0),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("campaigns_status_idx").on(t.status, t.scheduledAt)],
+);
+
+export const campaignRecipients = pgTable(
+  "campaign_recipients",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => campaigns.id, { onDelete: "cascade" }),
+    customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
+    email: text("email"),
+    phone: text("phone"),
+    status: text("status").notNull().default("PENDING"), // PENDING | SENT | FAILED
+    error: text("error"),
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+  },
+  (t) => [index("campaign_recipients_campaign_idx").on(t.campaignId, t.status)],
+);
+
+// Newsletter / announcement subscribers (captured from the public site)
+export const subscribers = pgTable(
+  "subscribers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email"),
+    phone: text("phone"),
+    name: text("name"),
+    source: text("source").notNull().default("NEWSLETTER"),
+    unsubscribed: boolean("unsubscribed").notNull().default(false),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("subscribers_email_idx").on(t.email), index("subscribers_phone_idx").on(t.phone)],
+);
+
+// Email controls — block fake/disposable addresses or whole domains (admin managed)
+export const emailBlocks = pgTable(
+  "email_blocks",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: text("kind").notNull(), // EMAIL | DOMAIN
+    value: text("value").notNull(),
+    reason: text("reason"),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("email_blocks_value_idx").on(t.kind, t.value)],
+);
+
+// Customer testimonials (proof of work)
+export const testimonials = pgTable("testimonials", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  customerName: text("customer_name").notNull(),
+  company: text("company"),
+  quote: text("quote").notNull(),
+  rating: integer("rating"), // 1-5 stars
+  isPublished: boolean("is_published").notNull().default(false),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Navigation items (admin-managed)
+export const navigationItems = pgTable("navigation_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  label: text("label").notNull(),
+  href: text("href").notNull(),
+  parentId: uuid("parent_id"),
+  sortOrder: integer("sort_order").default(0),
+  isPublished: boolean("is_published").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Custom forms (admin-managed)
+export const customForms = pgTable("custom_forms", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  fields: jsonb("fields").$type<Array<{ name: string; type: string; label: string; required: boolean; options?: string[] }>>().default([]),
+  submitAction: text("submit_action").notNull().default("EMAIL"), // EMAIL | WEBHOOK | DATABASE
+  submitEmail: text("submit_email"),
+  submitWebhook: text("submit_webhook"),
+  isPublished: boolean("is_published").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Form submissions
+export const formSubmissions = pgTable("form_submissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  formId: uuid("form_id").notNull().references(() => customForms.id, { onDelete: "cascade" }),
+  data: jsonb("data").$type<Record<string, unknown>>().default({}),
+  submittedBy: text("submitted_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Dynamic pages (admin-managed)
+export const dynamicPages = pgTable("dynamic_pages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  content: jsonb("content").$type<Record<string, unknown>>().default({}),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  isPublished: boolean("is_published").notNull().default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Follow-up reminders & tasks
+// ---------------------------------------------------------------------------
+
+export const reminders = pgTable(
+  "reminders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    done: boolean("done").notNull().default(false),
+    doneAt: timestamp("done_at", { withTimezone: true }),
+    entity: text("entity"),
+    entityId: text("entity_id"),
+    assignedTo: uuid("assigned_to").references(() => users.id, { onDelete: "set null" }),
+    createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("reminders_due_idx").on(t.dueAt, t.done)],
+);
+
+// ---------------------------------------------------------------------------
 // RAG
 // ---------------------------------------------------------------------------
 
@@ -694,3 +893,5 @@ export type Conversation = typeof conversations.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type Handoff = typeof handoffs.$inferSelect;
 export type KnowledgeDocument = typeof knowledgeDocuments.$inferSelect;
+export type Subscriber = typeof subscribers.$inferSelect;
+export type EmailBlock = typeof emailBlocks.$inferSelect;
