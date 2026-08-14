@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { SiteContent } from "@/lib/site-content";
-import { removeSiteMedia, resetSiteContent, saveCompanyProfile, saveContentArea, uploadSiteMedia } from "./actions";
+import { removeSiteMedia, resetSiteContent, retrainAgent, saveCompanyProfile, saveContentArea, uploadSiteMedia } from "./actions";
 
 type ObjField = { key: string; label: string; type?: "textarea" };
 type ObjItem = Record<string, string>;
@@ -212,10 +212,12 @@ export default function ContentEditor({
   content,
   profile,
   contact,
+  trainStatus,
 }: {
   content: SiteContent;
   profile: Record<string, unknown>;
   contact: Record<string, unknown>;
+  trainStatus: { trainedAt: string | null; docs: number };
 }) {
   const p = content;
   const reg = (profile.registration ?? {}) as Record<string, unknown>;
@@ -223,6 +225,25 @@ export default function ContentEditor({
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
+      <Section title="AI agent training" desc="The chat assistant answers only from this Oasis Impex knowledge base.">
+        <div className="space-y-3">
+          <div className="rounded-lg border border-white/10 bg-slate-950/40 p-4 text-sm">
+            <p className="font-semibold text-slate-200">Knowledge base</p>
+            <p className="mt-1 text-slate-400">
+              {trainStatus.docs > 0 ? `${trainStatus.docs} documents indexed` : "No documents indexed yet."}
+              {trainStatus.trainedAt ? ` Last trained ${new Date(trainStatus.trainedAt).toLocaleString()}.` : ""}
+            </p>
+            <p className="mt-2 text-xs text-slate-500">
+              Trains on Oasis Impex only — products, company profile, contact, trade terms, order process and FAQs. Nothing else.
+            </p>
+          </div>
+          <form action={retrainAgent}>
+            <button className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-accent/90">
+              Retrain AI agent
+            </button>
+          </form>
+        </div>
+      </Section>
       <Section title="Company profile" desc="Used across the whole site — address, phones, hours, registrations.">
         <form action={saveCompanyProfile} className="space-y-3">
           <div className="grid grid-cols-2 gap-3">

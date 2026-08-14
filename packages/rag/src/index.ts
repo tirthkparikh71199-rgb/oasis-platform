@@ -104,3 +104,5 @@ export async function retrieve(opts: {
 }
 
 export const PUBLIC_RETRIEVAL = VISIBILITY.PUBLIC;
+
+export * from "./train";

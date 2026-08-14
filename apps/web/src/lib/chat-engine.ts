@@ -2,8 +2,9 @@ import "server-only";
 import { eq } from "drizzle-orm";
 import { schema } from "@oasis/db";
 import { createAIProvider } from "@oasis/ai";
-import { retrieve } from "@oasis/rag";
+import { isTrainingAvailable, retrieve, trainKnowledgeBase } from "@oasis/rag";
 import { db } from "./db";
+import { buildTrainingCorpus } from "./knowledge-corpus";
 
 export const SYSTEM_PROMPT = `You are the official AI assistant for Oasis Impex, an established importer and supplier of polymer raw materials in Ahmedabad, India, operating since 2010.
 
@@ -33,9 +34,45 @@ export interface ChatEngineResult {
   sources: string[];
 }
 
+export async function ensureAgentTrained(): Promise<void> {
+  try {
+    const dbs = db();
+    const [trained] = await dbs
+      .select({ value: schema.settings.value })
+      .from(schema.settings)
+      .where(eq(schema.settings.key, "system.agentTrained"))
+      .limit(1);
+    if ((trained?.value as { at?: string } | undefined)?.at) return;
+    if (!isTrainingAvailable()) return;
+
+    const [inProgress] = await dbs
+      .select({ value: schema.settings.value })
+      .from(schema.settings)
+      .where(eq(schema.settings.key, "system.agentTraining"))
+      .limit(1);
+    if (inProgress) return;
+
+    await dbs
+      .insert(schema.settings)
+      .values({ key: "system.agentTraining", value: { at: new Date().toISOString() } })
+      .onConflictDoNothing({ target: schema.settings.key });
+
+    const corpus = await buildTrainingCorpus();
+    const res = await trainKnowledgeBase(corpus);
+    await dbs
+      .insert(schema.settings)
+      .values({ key: "system.agentTrained", value: { at: new Date().toISOString(), docs: corpus.length, indexed: res.indexed, skipped: res.skipped } })
+      .onConflictDoUpdate({ target: schema.settings.key, set: { value: { at: new Date().toISOString(), docs: corpus.length, indexed: res.indexed, skipped: res.skipped }, updatedAt: new Date() } });
+  } catch {
+    // training is best-effort; chat continues with graceful fallback
+  }
+}
+
 export async function runChatEngine(opts: ChatEngineOptions): Promise<ChatEngineResult> {
   const { content, conversationId, channel, externalId, page } = opts;
   const dbs = db();
+
+  void ensureAgentTrained();
 
   let convId = conversationId ?? undefined;
   if (convId) {

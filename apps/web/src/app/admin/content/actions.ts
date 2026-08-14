@@ -6,9 +6,11 @@ import { writeFile, mkdir } from "node:fs/promises";
 import { join, extname } from "node:path";
 import { randomUUID } from "node:crypto";
 import { schema } from "@oasis/db";
+import { trainKnowledgeBase } from "@oasis/rag";
 import { db } from "@/lib/db";
 import { requirePerm, requireUser } from "@/lib/auth";
 import { getSiteContent, upsertSiteContent } from "@/lib/site-content";
+import { buildTrainingCorpus } from "@/lib/knowledge-corpus";
 
 const str = (f: FormData, k: string) => (f.get(k) ? String(f.get(k)).trim() : null);
 
@@ -144,4 +146,18 @@ export async function resetSiteContent(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/admin/content");
   redirect("/admin/content?saved=1");
+}
+
+export async function retrainAgent() {
+  const user = await requireUser();
+  requirePerm(user, "settings.write", "/admin/content");
+  const corpus = await buildTrainingCorpus();
+  const res = await trainKnowledgeBase(corpus);
+  await db()
+    .insert(schema.settings)
+    .values({ key: "system.agentTrained", value: { at: new Date().toISOString(), docs: corpus.length, indexed: res.indexed, skipped: res.skipped } })
+    .onConflictDoUpdate({ target: schema.settings.key, set: { value: { at: new Date().toISOString(), docs: corpus.length, indexed: res.indexed, skipped: res.skipped }, updatedAt: new Date() } });
+  revalidatePath("/");
+  revalidatePath("/admin/content");
+  redirect("/admin/content?trained=1");
 }

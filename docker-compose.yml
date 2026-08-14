@@ -44,6 +44,10 @@ services:
       EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-info@oasisimpex.in}
       ADMIN_ALERT_EMAIL: ${ADMIN_ALERT_EMAIL:-}
       WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-sandbox}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID:-}
+      WHATSAPP_ACCESS_TOKEN: ${WHATSAPP_ACCESS_TOKEN:-}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN:-}
+      WHATSAPP_APP_SECRET: ${WHATSAPP_APP_SECRET:-}
       SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:-admin@oasisimpex.in}
       SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:-}
     volumes:
@@ -71,6 +75,8 @@ services:
       EMAIL_FROM: ${EMAIL_FROM:-Oasis Impex <no-reply@oasisimpex.in>}
       EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-info@oasisimpex.in}
       ADMIN_ALERT_EMAIL: ${ADMIN_ALERT_EMAIL:-}
+      DAILY_REPORT_HOUR: ${DAILY_REPORT_HOUR:-08:00}
+      DAILY_REPORT_TO: ${DAILY_REPORT_TO:-}
     command: ["sh", "-c", "pnpm --filter @oasis/worker start"]
 
   caddy:
