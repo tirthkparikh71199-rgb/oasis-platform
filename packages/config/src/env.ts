@@ -12,7 +12,7 @@ const envSchema = z.object({
   DATABASE_URL_READONLY: z.string().optional(),
 
   AI_PROVIDER: z.enum(["gemini", "mock"]).default("mock"),
-  AI_MODEL: z.string().default("gemini-2.0-flash"),
+  AI_MODEL: z.string().default("gemini-flash-latest"),
   GEMINI_API_KEY: z.string().default(""),
   EMBEDDING_MODEL: z.string().default("gemini-embedding-001"),
   EMBEDDING_DIM: z.coerce.number().int().positive().default(768),
