@@ -9,7 +9,8 @@ import { SupplyChainFlow } from "@/components/home/SupplyChainFlow";
 import { Reveal } from "@/components/motion/Reveal";
 import { Counter } from "@/components/motion/Counter";
 import { ScrollReveal } from "@/components/motion/ScrollAnimations";
-import { HowItWorksAnimation, ShipSailingAnimation, DeliveryTruckAnimation } from "@/components/home/AnimatedSections";
+import { HowItWorksAnimation } from "@/components/home/AnimatedSections";
+import { LogisticsScene } from "@/components/home/LogisticsScene";
 import { TradeRouteAnimation, ContainerAnimation, ManufacturingAnimation } from "@/components/home/TradeAnimations";
 import { GlowCard, MorphingBlob } from "@/components/motion/PremiumAnimations";
 import { getCompanyProfile, getProducts, getCategories } from "@/lib/content";
@@ -273,10 +274,11 @@ export default async function HomePage() {
               <HowItWorksAnimation />
             </div>
           </Reveal>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2">
-            <ShipSailingAnimation />
-            <DeliveryTruckAnimation />
-          </div>
+          <Reveal delay={0.25}>
+            <div className="mt-12">
+              <LogisticsScene />
+            </div>
+          </Reveal>
         </div>
       </section>
 

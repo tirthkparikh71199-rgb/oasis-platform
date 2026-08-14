@@ -46,6 +46,23 @@ export function ChatWidget({ chat }: { chat: ChatContent }) {
     if (!waitingForAgent || !convRef.current) return;
     let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
+    // If no human agent joins within 2 minutes, invite the customer to leave
+    // their email so the team can follow up by mail or chat.
+    const fallback = setTimeout(() => {
+      if (stopped) return;
+      setMessages((prev) => {
+        const already = prev.some((m) => m.content.includes("share your email"));
+        if (already) return prev;
+        return [
+          ...prev,
+          {
+            role: "bot",
+            content:
+              "Our team isn't available to jump in right now. Please share your email and we'll get back to you by mail or chat as soon as possible.",
+          },
+        ];
+      });
+    }, 120000);
     const tick = async () => {
       try {
         const res = await fetch(`/api/chat/history?conversationId=${encodeURIComponent(convRef.current!)}`);
@@ -74,12 +91,20 @@ export function ChatWidget({ chat }: { chat: ChatContent }) {
     return () => {
       stopped = true;
       clearTimeout(timer);
+      clearTimeout(fallback);
     };
   }, [waitingForAgent]);
 
   async function send(text: string) {
     const content = text.trim();
     if (!content || typing) return;
+    // Once handed off to a human, the AI stays quiet — the sales team (or the
+    // 2-minute fallback below) handles the customer from here.
+    if (waitingForAgent) {
+      setMessages((m) => [...m, { role: "user", content }]);
+      setInput("");
+      return;
+    }
     track("chat_message", { channel: "web" });
     setMessages((m) => [...m, { role: "user", content }]);
     setInput("");
@@ -96,6 +121,8 @@ export function ChatWidget({ chat }: { chat: ChatContent }) {
       window.localStorage.setItem(STORAGE_KEY, data.conversationId);
       setMessages((m) => [...m, { role: "bot", content: data.reply }]);
       if (data.handoffCreated) {
+        // Start watching for a human agent to join, but keep the AI assistant
+        // responding in the meantime so the customer is never left in silence.
         setWaitingForAgent(true);
       }
     } catch {
@@ -116,7 +143,7 @@ export function ChatWidget({ chat }: { chat: ChatContent }) {
         type="button"
         aria-label="Open chat assistant"
         onClick={() => setOpen((v) => !v)}
-        className="tap-none fixed bottom-5 right-5 z-[90] flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-brand-3 to-brand-ink text-white shadow-lift transition-transform hover:scale-105 active:scale-95 sm:bottom-6 sm:right-6"
+        className="tap-none fixed bottom-5 right-5 z-[90] flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-brand-3 to-brand-ink text-white shadow-lift transition-transform hover:scale-105 active:scale-95 sm:bottom-6 sm:right-6"
       >
         <span className="pulse-ring" />
         <svg viewBox="0 0 24 24" className="relative h-6 w-6" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -137,7 +164,7 @@ export function ChatWidget({ chat }: { chat: ChatContent }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.96 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed bottom-24 right-4 left-4 z-[90] flex h-[70vh] max-h-[560px] flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-lift sm:bottom-28 sm:right-6 sm:left-auto sm:w-[380px]"
+            className="fixed bottom-24 right-4 left-4 z-[90] flex h-[80vh] max-h-[720px] flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-lift sm:bottom-28 sm:right-6 sm:left-auto sm:w-[440px]"
             role="dialog"
             aria-label="Oasis Impex assistant"
           >

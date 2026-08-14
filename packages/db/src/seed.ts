@@ -197,13 +197,15 @@ async function main() {
   const e = env();
   const db = createDb();
 
-  const roles = await db
+  await db
     .insert(schema.roles)
     .values(Object.keys(ROLE_PERMISSIONS).map((name) => ({ name: name as typeof schema.roles.$inferSelect.name, description: `${name.replaceAll("_", " ")} role` })))
-    .onConflictDoNothing({ target: schema.roles.name })
-    .returning();
+    .onConflictDoNothing({ target: schema.roles.name });
 
-  const roleId = new Map(roles.map((r) => [r.name, r.id]));
+  // Read back ALL roles (not just newly-inserted ones) so the seed is idempotent
+  // — re-running on a DB that already has roles must not fail.
+  const allRoles = await db.select({ id: schema.roles.id, name: schema.roles.name }).from(schema.roles);
+  const roleId = new Map(allRoles.map((r) => [r.name, r.id]));
   const missing = Object.keys(ROLE_PERMISSIONS).filter((n) => !roleId.has(n as never));
   if (missing.length) throw new Error(`Failed to seed roles: ${missing.join(", ")}`);
 

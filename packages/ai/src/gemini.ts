@@ -47,7 +47,7 @@ export class GeminiAIProvider implements AIProvider {
     const start = Date.now();
     const url = `${GENERATE_ENDPOINT}/${this.model}:generateContent?key=${this.apiKey}`;
     const contents = messages.map((m) => ({
-      role: m.role === "system" ? "user" : m.role,
+      role: m.role === "assistant" ? "model" : "user",
       parts: [{ text: m.content }],
     }));
 
