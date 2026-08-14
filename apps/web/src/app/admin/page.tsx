@@ -3,7 +3,6 @@ import { and, desc, eq, gte, sql } from "drizzle-orm";
 import { schema } from "@oasis/db";
 import { db } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { getSystemInfo } from "@/lib/system-info";
 
 const INQUIRY_STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "IN_PROGRESS", "CONVERTED", "CLOSED"] as const;
 const STATUS_STYLES: Record<string, string> = {

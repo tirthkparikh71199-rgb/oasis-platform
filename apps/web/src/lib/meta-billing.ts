@@ -31,8 +31,6 @@ export async function getMetaBillingInfo(): Promise<{
       return { conversations: [], totalCost: 0, creditRemaining: 0, error: `API error: ${phoneRes.status}` };
     }
 
-    const phoneData = await phoneRes.json() as { verified_name?: string; quality_rating?: string };
-
     // Note: Meta doesn't expose billing via REST API directly
     // We track conversations in our own database
     return {
