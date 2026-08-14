@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 export function TradeRouteAnimation() {
   const [activeRoute, setActiveRoute] = useState(0);

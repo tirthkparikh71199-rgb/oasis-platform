@@ -10,6 +10,7 @@ import { Reveal } from "@/components/motion/Reveal";
 import { Counter } from "@/components/motion/Counter";
 import { ScrollReveal } from "@/components/motion/ScrollAnimations";
 import { HowItWorksAnimation, ShipSailingAnimation, DeliveryTruckAnimation } from "@/components/home/AnimatedSections";
+import { TradeRouteAnimation, ContainerAnimation, ManufacturingAnimation } from "@/components/home/TradeAnimations";
 import { GlowCard, MorphingBlob } from "@/components/motion/PremiumAnimations";
 import { getCompanyProfile, getProducts, getCategories } from "@/lib/content";
 import { getHomeContent } from "@/lib/site-content";
@@ -87,6 +88,22 @@ export default async function HomePage() {
               <SupplyChainFlow />
             </div>
           </Reveal>
+        </div>
+      </section>
+
+      <section className="py-16 sm:py-20">
+        <div className="container-x">
+          <Reveal>
+            <div className="mx-auto max-w-2xl text-center">
+              <p className="eyebrow text-brand">Our Operations</p>
+              <h2 className="mt-3 text-3xl font-extrabold sm:text-4xl">From Source to Delivery</h2>
+            </div>
+          </Reveal>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <Reveal delay={0}><TradeRouteAnimation /></Reveal>
+            <Reveal delay={0.1}><ContainerAnimation /></Reveal>
+            <Reveal delay={0.2}><ManufacturingAnimation /></Reveal>
+          </div>
         </div>
       </section>
 

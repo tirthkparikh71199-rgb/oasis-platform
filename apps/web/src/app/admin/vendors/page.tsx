@@ -72,7 +72,7 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
 
         <div id="add-vendor" className="rounded-xl border border-white/10 bg-white/[0.03] p-5">
           <h2 className="text-sm font-bold uppercase tracking-wide text-slate-400">Add Vendor</h2>
-          <form action={createVendor} className="mt-4 space-y-3">
+          <form action={createVendor} className="mt-4 space-y-3" encType="multipart/form-data">
             <label className="block">
               <span className="text-xs font-medium text-slate-300">Name *</span>
               <input name="name" required className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-accent" />
@@ -89,6 +89,10 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
               <span className="text-xs font-medium text-slate-300">Contact Name</span>
               <input name="contactName" className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-accent" />
             </label>
+            <label className="block">
+              <span className="text-xs font-medium text-slate-300">Website</span>
+              <input name="website" placeholder="https://..." className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-accent" />
+            </label>
             <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="text-xs font-medium text-slate-300">Email</span>
@@ -99,6 +103,10 @@ export default async function AdminVendorsPage({ searchParams }: { searchParams:
                 <input name="phone" className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-accent" />
               </label>
             </div>
+            <label className="block">
+              <span className="text-xs font-medium text-slate-300">Logo</span>
+              <input name="logo" type="file" accept="image/*" className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-accent" />
+            </label>
             <button className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-bold text-slate-950 hover:bg-accent/90">Add Vendor</button>
           </form>
         </div>
