@@ -30,13 +30,13 @@ export class MockAIProvider implements AIProvider {
     const found = MOCK_RESPONSES.find(([re]) => re.test(lastUser));
     const text = found ? found[1] : FALLBACK;
     await sleep(this.latency);
-    return { text, inputTokens: lastUser.length / 4, outputTokens: text.length / 4, latencyMs: Date.now() - start };
+    return { text, inputTokens: Math.ceil(lastUser.length / 4), outputTokens: Math.ceil(text.length / 4), latencyMs: Date.now() - start };
   }
 
   async embed(text: string, _opts?: EmbedOptions): Promise<EmbedResult> {
     const start = Date.now();
     await sleep(20);
-    return { embedding: deterministicEmbedding(text), inputTokens: text.length / 4, latencyMs: Date.now() - start };
+    return { embedding: deterministicEmbedding(text), inputTokens: Math.ceil(text.length / 4), latencyMs: Date.now() - start };
   }
 }
 
@@ -45,7 +45,7 @@ function sleep(ms: number) {
 }
 
 export function deterministicEmbedding(text: string): number[] {
-  const dim = 64;
+  const dim = 1536;
   const out = new Array<number>(dim).fill(0);
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);

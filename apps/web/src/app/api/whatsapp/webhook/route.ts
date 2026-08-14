@@ -27,7 +27,7 @@ interface WaContact {
 }
 
 function hasValidSignature(rawBody: string, signatureHeader: string | null): boolean {
-  const secret = process.env.WHATSAPP_APP_SECRET;
+  const secret = env().WHATSAPP_APP_SECRET;
   if (!secret) return true;
   if (!signatureHeader) return false;
   const expected = createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
   const mode = req.nextUrl.searchParams.get("hub.mode");
   const token = req.nextUrl.searchParams.get("hub.verify_token");
   const challenge = req.nextUrl.searchParams.get("hub.challenge");
-  if (mode === "subscribe" && token && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+  if (mode === "subscribe" && token && token === env().WHATSAPP_VERIFY_TOKEN) {
     return new NextResponse(challenge, { status: 200, headers: { "Content-Type": "text/plain" } });
   }
   return new NextResponse("Forbidden", { status: 403 });
@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
                 { label: "Phone", value: phone },
                 { label: "Name", value: contactName },
                 { label: "First message", value: text.slice(0, 300) },
-              ], `Open: ${env().APP_URL ?? "http://localhost:3000"}/admin/chats/${result.conversationId}`);
+              ], `Open: ${env().APP_URL ?? "http://localhost:3000"}/admin/chats/${result.conversationId}`, { email: false });
             }
 
             await whatsapp.send({ to: phone, text: result.reply });

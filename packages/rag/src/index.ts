@@ -36,6 +36,10 @@ export async function indexDocument(opts: { documentId: string; content: string;
   const ai = createAIProvider();
   const chunks = chunkText(opts.content);
 
+  // Clear any prior chunks for this document so re-indexing is idempotent
+  // (avoids duplicate/stale rows accumulating across training runs).
+  await db.delete(schema.knowledgeChunks).where(sql`${schema.knowledgeChunks.documentId} = ${opts.documentId}`);
+
   for (let i = 0; i < chunks.length; i++) {
     const { embedding } = await ai.embed(chunks[i].text);
     await db.insert(schema.knowledgeChunks).values({
@@ -67,40 +71,45 @@ export async function retrieve(opts: {
   limit?: number;
   scoreThreshold?: number;
 }): Promise<RetrievedContext[]> {
-  const db = createDb();
-  const ai = createAIProvider();
-  const { embedding } = await ai.embed(opts.query);
+  try {
+    const db = createDb();
+    const ai = createAIProvider();
+    const { embedding } = await ai.embed(opts.query);
 
-  const limit = opts.limit ?? 5;
-  const threshold = opts.scoreThreshold ?? 0.4;
-  const queryVec = `[${embedding.join(",")}]`;
+    const limit = opts.limit ?? 5;
+    const threshold = opts.scoreThreshold ?? 0.4;
+    const queryVec = `[${embedding.join(",")}]`;
 
-  const rows = await db
-    .select({
-      id: schema.knowledgeChunks.id,
-      content: schema.knowledgeChunks.content,
-      score: sql<number>`1 - (${schema.knowledgeChunks.embedding} <=> ${queryVec}::vector)`,
-      documentId: schema.knowledgeChunks.documentId,
-      title: schema.knowledgeDocuments.title,
-    })
-    .from(schema.knowledgeChunks)
-    .innerJoin(
-      schema.knowledgeDocuments,
-      sql`${schema.knowledgeChunks.documentId} = ${schema.knowledgeDocuments.id}`,
-    )
-    .where(sql`${schema.knowledgeChunks.visibility} = ${opts.visibility} AND ${schema.knowledgeChunks.embedding} IS NOT NULL`)
-    .orderBy(sql`${schema.knowledgeChunks.embedding} <=> ${queryVec}::vector`)
-    .limit(limit * 4);
+    const rows = await db
+      .select({
+        id: schema.knowledgeChunks.id,
+        content: schema.knowledgeChunks.content,
+        score: sql<number>`1 - (${schema.knowledgeChunks.embedding} <=> ${queryVec}::vector)`,
+        documentId: schema.knowledgeChunks.documentId,
+        title: schema.knowledgeDocuments.title,
+      })
+      .from(schema.knowledgeChunks)
+      .innerJoin(
+        schema.knowledgeDocuments,
+        sql`${schema.knowledgeChunks.documentId} = ${schema.knowledgeDocuments.id}`,
+      )
+      .where(sql`${schema.knowledgeChunks.visibility} = ${opts.visibility} AND ${schema.knowledgeChunks.embedding} IS NOT NULL`)
+      .orderBy(sql`${schema.knowledgeChunks.embedding} <=> ${queryVec}::vector`)
+      .limit(limit * 4);
 
-  return rows
-    .filter((r) => r.score >= threshold)
-    .slice(0, limit)
-    .map((r) => ({
-      text: r.content,
-      documentId: r.documentId,
-      title: r.title,
-      score: r.score,
-    }));
+    return rows
+      .filter((r) => r.score >= threshold)
+      .slice(0, limit)
+      .map((r) => ({
+        text: r.content,
+        documentId: r.documentId,
+        title: r.title,
+        score: r.score,
+      }));
+  } catch (err) {
+    // RAG retrieval is best-effort; return empty context on failure
+    return [];
+  }
 }
 
 export const PUBLIC_RETRIEVAL = VISIBILITY.PUBLIC;

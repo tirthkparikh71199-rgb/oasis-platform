@@ -6,13 +6,19 @@ import { createLogger } from "@oasis/logger";
 
 const log = createLogger("notify");
 
-export async function notifyTeam(event: string, lines: Array<{ label: string; value?: string | null }>, extra?: string): Promise<void> {
+export async function notifyTeam(
+  event: string,
+  lines: Array<{ label: string; value?: string | null }>,
+  extra?: string,
+  opts: { email?: boolean } = {},
+): Promise<void> {
   try {
     const cfg = env();
-    
-    // Email notification
+
+    // Email notification (skipped when opts.email === false — e.g. WhatsApp leads,
+    // which are already surfaced in the admin panel + team WhatsApp)
     const to = cfg.ADMIN_ALERT_EMAIL;
-    if (to) {
+    if (to && opts.email !== false) {
       const email = createEmailProvider();
       if (email.isConfigured()) {
         const body = [

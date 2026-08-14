@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { createDb, schema } from "@oasis/db";
 import { createAIProvider } from "@oasis/ai";
+import { env } from "@oasis/config";
 import { indexDocument } from "./index";
 import type { Visibility } from "@oasis/domain";
 
@@ -14,7 +15,8 @@ export interface TrainingDoc {
 }
 
 export function isTrainingAvailable(): boolean {
-  return process.env.AI_PROVIDER === "gemini";
+  const e = env();
+  return e.AI_PROVIDER === "gemini" && Boolean(e.GEMINI_API_KEY);
 }
 
 export async function trainKnowledgeBase(docs: TrainingDoc[]): Promise<{ indexed: number; skipped: number }> {

@@ -43,7 +43,7 @@ class RateLimitAwareProvider implements AIProvider {
       return await this.primary.chat(messages, opts);
     } catch (err) {
       const errStr = err instanceof Error ? err.message : String(err);
-      if (errStr.includes("429") || errStr.includes("rate") || errStr.includes("quota")) {
+      if (errStr.includes("429") || errStr.includes("rate") || errStr.includes("quota") || errStr.includes("timed out") || errStr.includes("timeout") || errStr.includes("fetch failed") || errStr.includes("ECONNRESET") || errStr.includes("ETIMEDOUT")) {
         rateLimitHits++;
         lastRateLimit = Date.now();
         log.warn({ rateLimitHits }, "Gemini rate limited, falling back to mock");
@@ -58,7 +58,7 @@ class RateLimitAwareProvider implements AIProvider {
       return await this.primary.embed(text, opts);
     } catch (err) {
       const errStr = err instanceof Error ? err.message : String(err);
-      if (errStr.includes("429") || errStr.includes("rate") || errStr.includes("quota")) {
+      if (errStr.includes("429") || errStr.includes("rate") || errStr.includes("quota") || errStr.includes("timed out") || errStr.includes("timeout") || errStr.includes("fetch failed") || errStr.includes("ECONNRESET") || errStr.includes("ETIMEDOUT")) {
         rateLimitHits++;
         lastRateLimit = Date.now();
         log.warn({ rateLimitHits }, "Gemini embed rate limited, falling back to mock");
