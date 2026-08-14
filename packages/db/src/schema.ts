@@ -670,6 +670,18 @@ export const emailBlocks = pgTable(
   (t) => [index("email_blocks_value_idx").on(t.kind, t.value)],
 );
 
+// Customer testimonials (proof of work)
+export const testimonials = pgTable("testimonials", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  customerName: text("customer_name").notNull(),
+  company: text("company"),
+  quote: text("quote").notNull(),
+  rating: integer("rating"), // 1-5 stars
+  isPublished: boolean("is_published").notNull().default(false),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ---------------------------------------------------------------------------
 // Follow-up reminders & tasks
 // ---------------------------------------------------------------------------
