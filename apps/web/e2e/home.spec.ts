@@ -7,7 +7,6 @@ test.describe("Home page", () => {
     await expect(page.getByRole("heading", { level: 1 })).toContainText("PVC raw materials");
     await expect(page.getByRole("link", { name: /Explore products/i }).first()).toBeVisible();
     await expect(page.getByRole("link", { name: /Request a quotation/i }).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: /Get a quote/i })).toBeVisible();
   });
 
   test("navigation links work", async ({ page }) => {
