@@ -9,13 +9,15 @@ test.describe("Home page", () => {
     await expect(page.getByRole("link", { name: /Request a quotation/i }).first()).toBeVisible();
   });
 
-  test("navigation links work", async ({ page }) => {
-    await page.goto("/");
+  test("navigation links work", async ({ page, isMobile }) => {
     const links = ["Products", "About", "Contact"];
     for (const label of links) {
+      await page.goto("/");
+      if (isMobile) {
+        await page.getByRole("button", { name: /Open menu/i }).click();
+      }
       await page.getByRole("link", { name: label, exact: true }).first().click();
       await expect(page).not.toHaveURL("/");
-      await page.goto("/");
     }
   });
 
