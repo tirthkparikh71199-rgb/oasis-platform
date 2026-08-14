@@ -19,7 +19,7 @@ export function buildMetadata({ title, description, path = "/", ogImage, keyword
   return {
     metadataBase: new URL(SITE.domain()),
     title: {
-      default: `${SITE.name} — Importer of Polymer Raw Materials`,
+      default: `${SITE.name} — Importer & Trader of PVC Resin & PET Raw Materials`,
       template: `%s | ${SITE.name}`,
     },
     description,

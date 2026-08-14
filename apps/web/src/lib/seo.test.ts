@@ -9,7 +9,7 @@ describe("buildMetadata", () => {
       path: "/products/pvc-resin-k67",
     });
     expect(md.title).toEqual({
-      default: "Oasis Impex — Importer of Polymer Raw Materials",
+      default: "Oasis Impex — Importer & Trader of PVC Resin & PET Raw Materials",
       template: "%s | Oasis Impex",
     });
     expect(md.description).toBe("Suspension PVC resin.");

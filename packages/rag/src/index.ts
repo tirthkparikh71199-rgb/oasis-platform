@@ -44,7 +44,7 @@ export async function indexDocument(opts: { documentId: string; content: string;
       content: chunks[i].text,
       metadata: {},
       visibility: opts.visibility,
-      embedding,
+      embedding: sql`'[${embedding.join(",")}]'`,
     });
   }
 
@@ -73,12 +73,13 @@ export async function retrieve(opts: {
 
   const limit = opts.limit ?? 5;
   const threshold = opts.scoreThreshold ?? 0.4;
+  const queryVec = `[${embedding.join(",")}]`;
 
   const rows = await db
     .select({
       id: schema.knowledgeChunks.id,
       content: schema.knowledgeChunks.content,
-      score: sql<number>`1 - (${schema.knowledgeChunks.embedding} <=> ${embedding}::vector)`,
+      score: sql<number>`1 - (${schema.knowledgeChunks.embedding} <=> ${queryVec}::vector)`,
       documentId: schema.knowledgeChunks.documentId,
       title: schema.knowledgeDocuments.title,
     })
@@ -88,7 +89,7 @@ export async function retrieve(opts: {
       sql`${schema.knowledgeChunks.documentId} = ${schema.knowledgeDocuments.id}`,
     )
     .where(sql`${schema.knowledgeChunks.visibility} = ${opts.visibility} AND ${schema.knowledgeChunks.embedding} IS NOT NULL`)
-    .orderBy(sql`${schema.knowledgeChunks.embedding} <=> ${embedding}::vector`)
+    .orderBy(sql`${schema.knowledgeChunks.embedding} <=> ${queryVec}::vector`)
     .limit(limit * 4);
 
   return rows

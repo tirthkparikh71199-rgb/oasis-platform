@@ -54,7 +54,7 @@ describe("db integration", () => {
       chunkIndex: 0,
       content: "hello vector",
       visibility: "PUBLIC",
-      embedding: Array(768).fill(0.01),
+      embedding: sql`'[${Array(768).fill(0.01).join(",")}]'`,
     });
 
     const rows = await db.execute(sql`SELECT count(*)::int AS n FROM knowledge_chunks WHERE document_id = ${doc.id}`);

@@ -11,9 +11,9 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Importer of Polymer Raw Materials",
+  title: "Oasis Impex — Importer & Trader of PVC Resin & PET Raw Materials",
   description:
-    "Oasis Impex is an established Ahmedabad-based importer and supplier of PVC Resin, PVC Regrind and Calcium Carbonate — trusted by pipe, profile and fittings manufacturers across India.",
+    "Oasis Impex is an established Ahmedabad-based importer and trader of PVC Resin, PVC Regrind, PET Resin and Calcium Carbonate — trusted by pipe, profile and fittings manufacturers across India.",
 };
 
 const PROCESS = [
