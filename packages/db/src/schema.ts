@@ -404,6 +404,8 @@ export const vendors = pgTable("vendors", {
   email: text("email"),
   phone: text("phone"),
   contactName: text("contact_name"),
+  logoUrl: text("logo_url"),
+  website: text("website"),
   status: vendorStatusEnum("status").notNull().default("ACTIVE"),
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
