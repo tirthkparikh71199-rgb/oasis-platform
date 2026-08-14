@@ -72,19 +72,19 @@ export async function POST(req: NextRequest) {
           if (!text) continue;
 
           try {
-            if (contactName) {
-              await dbs
-                .update(schema.conversations)
-                .set({ metadata: { phone, whatsappName: contactName } })
-                .where(eq(schema.conversations.externalId, externalId));
-            }
-
             const result = await runChatEngine({
               content: text,
               channel: "WHATSAPP",
               externalId,
               page: "whatsapp",
             });
+
+            if (contactName) {
+              await dbs
+                .update(schema.conversations)
+                .set({ metadata: { phone, whatsappName: contactName } })
+                .where(eq(schema.conversations.id, result.conversationId));
+            }
 
             await whatsapp.send({ to: phone, text: result.reply });
             log.info({ phone, conversationId: result.conversationId }, "whatsapp reply sent");
