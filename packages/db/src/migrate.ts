@@ -8,6 +8,7 @@ async function main() {
   const pool = new Pool({ connectionString: e.DATABASE_URL });
   const db = drizzle(pool);
   console.log(`[db] migrating → ${e.DATABASE_URL.split("@")[1] ?? e.DATABASE_URL}`);
+  await pool.query("CREATE EXTENSION IF NOT EXISTS vector");
   await migrate(db, { migrationsFolder: "./drizzle" });
   console.log("[db] migrations complete");
   await pool.end();

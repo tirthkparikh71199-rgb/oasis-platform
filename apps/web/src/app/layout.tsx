@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ChatWidget } from "@/components/chat/ChatWidget";
 import { AnimatedCursor } from "@/components/motion/AnimatedCursor";
+import { SmoothScroll } from "@/components/motion/SmoothScroll";
 import { getCompanyProfile } from "@/lib/content";
 import { buildMetadata } from "@/lib/seo";
 
@@ -53,10 +54,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <Navbar profile={profile} />
-        <main>{children}</main>
+        <SmoothScroll>
+          <main>{children}</main>
+        </SmoothScroll>
         <Footer profile={profile} />
         <ChatWidget />
         <AnimatedCursor />
+        <div className="film-grain pointer-events-none fixed inset-0 z-[5]" aria-hidden />
       </body>
     </html>
   );

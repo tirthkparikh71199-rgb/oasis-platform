@@ -19,6 +19,7 @@ describe("db integration", () => {
       .start();
     pool = new Pool({ connectionString: container.getConnectionUri() });
     db = drizzle(pool, { schema });
+    await pool.query("CREATE EXTENSION IF NOT EXISTS vector");
     await migrate(db, { migrationsFolder: "./drizzle" });
   }, 120_000);
 

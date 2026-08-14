@@ -22,8 +22,7 @@ export default async function ProductsPage() {
         <div className="container-x relative">
           <Reveal>
             <p className="eyebrow text-accent">Catalogue</p>
-            <h1 className="mt-3 text-4xl font-extrabold sm:text-5xl">Our products</h1>
-            <p className="mt-4 max-w-2xl text-white/60">
+            <h1 className="mt-3 text-4xl font-extrabold sm:text-5xl">Our products</h1>            <p className="mt-4 max-w-2xl text-white/60">
               Grades, documentation and availability shared transparently. Not sure what you need? Ask the assistant or talk to our sales team.
             </p>
           </Reveal>

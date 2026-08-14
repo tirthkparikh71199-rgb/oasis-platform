@@ -1,5 +1,7 @@
 import { TradeRoutes } from "./TradeRoutes";
 import { Counter } from "@/components/motion/Counter";
+import { RevealText } from "@/components/motion/RevealText";
+import { MagneticButton } from "@/components/motion/MagneticButton";
 import type { CompanyProfile } from "@/lib/content";
 
 export function Hero({ profile }: { profile: CompanyProfile }) {
@@ -18,8 +20,8 @@ export function Hero({ profile }: { profile: CompanyProfile }) {
         </p>
 
         <h1 className="mt-5 max-w-4xl text-4xl font-extrabold leading-[1.05] sm:text-5xl md:text-6xl lg:text-7xl">
-          PVC raw materials,{" "}
-          <span className="gradient-text">delivered with certainty.</span>
+          <RevealText as="span" text="PVC raw materials," />
+          <RevealText as="span" text="delivered with certainty." accentWords={["delivered", "with", "certainty."]} delay={0.15} />
         </h1>
 
         <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/65 sm:text-lg">
@@ -28,15 +30,19 @@ export function Hero({ profile }: { profile: CompanyProfile }) {
         </p>
 
         <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-          <a href="/products" className="btn-primary btn-sheen px-7 py-3.5 text-sm">
-            Explore products
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M5 12h14M12 5l7 7-7 7" />
-            </svg>
-          </a>
-          <a href="/contact" className="btn-ghost-dark px-7 py-3.5 text-sm">
-            Request a quotation
-          </a>
+          <MagneticButton>
+            <a href="/products" className="btn-primary btn-sheen px-7 py-3.5 text-sm">
+              Explore products
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M5 12h14M12 5l7 7-7 7" />
+              </svg>
+            </a>
+          </MagneticButton>
+          <MagneticButton>
+            <a href="/contact" className="btn-ghost-dark px-7 py-3.5 text-sm">
+              Request a quotation
+            </a>
+          </MagneticButton>
         </div>
 
         <div className="mt-16 grid max-w-2xl grid-cols-2 gap-6 sm:grid-cols-4">
