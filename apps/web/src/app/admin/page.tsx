@@ -24,6 +24,7 @@ export default async function AdminDashboard() {
       liveProducts: sql<number>`(select count(*)::int from ${schema.products} where is_public = true)`,
       customers: sql<number>`(select count(*)::int from ${schema.customers})`,
       inquiries: sql<number>`(select count(*)::int from ${schema.inquiries})`,
+      orders: sql<number>`(select count(*)::int from ${schema.orders})`,
       newInquiries: sql<number>`(select count(*)::int from ${schema.inquiries} where status = 'NEW')`,
       openHandoffs: sql<number>`(select count(*)::int from ${schema.handoffs} where status in ('NEW','QUEUED','ASSIGNED','IN_PROGRESS'))`,
       openConvs: sql<number>`(select count(*)::int from ${schema.conversations} where status != 'RESOLVED')`,
@@ -125,14 +126,49 @@ export default async function AdminDashboard() {
   const totalInquiries = statusCounts.reduce((a, s) => a + s.count, 0);
   const maxStatus = Math.max(1, ...statusCounts.map((s) => s.count));
 
+  const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const [todayOrders, todayCustomers, todayInquiries, todayConversations] = await Promise.all([
+    dbs
+      .select({
+        orderNumber: schema.orders.orderNumber,
+        customer: schema.customers.name,
+        status: schema.orders.status,
+        createdBy: schema.users.name,
+        createdAt: schema.orders.createdAt,
+      })
+      .from(schema.orders)
+      .innerJoin(schema.customers, eq(schema.orders.customerId, schema.customers.id))
+      .leftJoin(schema.users, eq(schema.orders.createdBy, schema.users.id))
+      .where(gte(schema.orders.createdAt, dayStart))
+      .orderBy(desc(schema.orders.createdAt)),
+    dbs
+      .select({ name: schema.customers.name, company: schema.customers.company, createdAt: schema.customers.createdAt })
+      .from(schema.customers)
+      .where(gte(schema.customers.createdAt, dayStart))
+      .orderBy(desc(schema.customers.createdAt))
+      .limit(8),
+    dbs
+      .select({ name: schema.inquiries.name, company: schema.inquiries.company, createdAt: schema.inquiries.createdAt })
+      .from(schema.inquiries)
+      .where(gte(schema.inquiries.createdAt, dayStart))
+      .orderBy(desc(schema.inquiries.createdAt))
+      .limit(8),
+    dbs
+      .select({ id: schema.conversations.id, createdAt: schema.conversations.createdAt })
+      .from(schema.conversations)
+      .where(gte(schema.conversations.createdAt, dayStart))
+      .orderBy(desc(schema.conversations.createdAt))
+      .limit(8),
+  ]);
+
   const k = kpi[0];
   const cards = [
+    { label: "Orders", value: k.orders, sub: `${todayOrders.length} today`, href: "/admin/orders" },
     { label: "Products", value: k.products, sub: `${k.liveProducts} live`, href: "/admin/products" },
-    { label: "Customers", value: k.customers, sub: "CRM", href: "/admin/customers" },
+    { label: "Customers", value: k.customers, sub: `${todayCustomers.length} today`, href: "/admin/customers" },
     { label: "Inquiries", value: k.inquiries, sub: `${k.newInquiries} new`, href: "/admin/inquiries" },
     { label: "Open chats", value: k.openConvs, sub: `${k.openHandoffs} handoffs`, href: "/admin/chats" },
     { label: "Unread visitor msgs", value: k.unreadMsgs, sub: "awaiting reply", href: "/admin/chats" },
-    { label: "Bot latency", value: k.avgReplyMs ? `${(k.avgReplyMs / 1000).toFixed(1)}s` : "—", sub: "avg AI reply", href: "/admin/chats" },
   ];
 
   return (
@@ -149,6 +185,68 @@ export default async function AdminDashboard() {
           </Link>
         ))}
       </div>
+
+      <section className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-white">Today&apos;s activity</h2>
+          <span className="text-xs text-slate-500">{dayStart.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "short" })}</span>
+        </div>
+        {todayOrders.length + todayCustomers.length + todayInquiries.length + todayConversations.length === 0 ? (
+          <p className="mt-4 text-sm text-slate-400">Nothing recorded yet today.</p>
+        ) : (
+          <ul className="mt-3 divide-y divide-white/5 text-sm">
+            {todayOrders.map((o) => (
+              <li key={`o-${o.orderNumber}`} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="truncate">
+                  <span className="font-semibold text-slate-200">{o.customer}</span>
+                  <span className="text-slate-400"> placed order </span>
+                  <Link href={`/admin/orders`} className="font-semibold text-accent hover:underline">
+                    {o.orderNumber}
+                  </Link>
+                </span>
+                <span className="shrink-0 text-xs text-slate-500">
+                  {o.createdBy ? `by ${o.createdBy} · ` : ""}
+                  {new Date(o.createdAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}
+                </span>
+              </li>
+            ))}
+            {todayInquiries.map((i) => (
+              <li key={`i-${i.createdAt.toISOString()}`} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="truncate">
+                  <span className="font-semibold text-slate-200">{i.name}</span>
+                  {i.company ? <span className="text-slate-400"> ({i.company})</span> : null}
+                  <span className="text-slate-400"> sent an inquiry</span>
+                </span>
+                <span className="shrink-0 text-xs text-slate-500">
+                  <Link href="/admin/inquiries" className="text-accent hover:underline">view</Link> · {new Date(i.createdAt).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}
+                </span>
+              </li>
+            ))}
+            {todayCustomers.map((c) => (
+              <li key={`c-${c.createdAt.toISOString()}`} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="truncate">
+                  <span className="font-semibold text-slate-200">{c.name}</span>
+                  {c.company ? <span className="text-slate-400"> ({c.company})</span> : null}
+                  <span className="text-slate-400"> added as customer</span>
+                </span>
+                <span className="shrink-0 text-xs text-slate-500">
+                  <Link href="/admin/customers" className="text-accent hover:underline">view</Link>
+                </span>
+              </li>
+            ))}
+            {todayConversations.map((c) => (
+              <li key={`v-${c.id}`} className="flex items-center justify-between gap-3 py-2.5">
+                <span className="truncate">
+                  <span className="text-slate-400">A visitor started a chat</span>
+                </span>
+                <span className="shrink-0 text-xs text-slate-500">
+                  <Link href={`/admin/chats/${c.id}`} className="text-accent hover:underline">open</Link>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
         <section className="rounded-xl border border-white/10 bg-white/[0.03] p-5">

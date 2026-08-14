@@ -5,13 +5,13 @@ import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
 import { schema } from "@oasis/db";
 import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth";
+import { requirePerm, requireUser } from "@/lib/auth";
 
 const str = (f: FormData, k: string) => (f.get(k) ? String(f.get(k)).trim() : null);
 
 export async function createCustomer(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "partners.write", "/admin/customers");
   const name = str(formData, "name");
   if (!name) redirect("/admin/customers?error=missing-name");
   await db()
@@ -31,8 +31,8 @@ export async function createCustomer(formData: FormData) {
 }
 
 export async function updateCustomer(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "partners.write", "/admin/customers");
   const id = str(formData, "id");
   const name = str(formData, "name");
   if (!id || !name) redirect("/admin/customers?error=missing");
@@ -56,8 +56,8 @@ export async function updateCustomer(formData: FormData) {
 }
 
 export async function deleteCustomer(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "partners.write", "/admin/customers");
   const id = str(formData, "id");
   if (id) await db().delete(schema.customers).where(eq(schema.customers.id, id));
   revalidatePath("/admin/customers");

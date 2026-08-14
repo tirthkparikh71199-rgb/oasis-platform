@@ -4,21 +4,30 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
 import { schema } from "@oasis/db";
+import { createWhatsAppProvider } from "@oasis/messaging";
 import { db } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth";
+import { requirePerm, requireUser } from "@/lib/auth";
 
 export async function sendAgentMessage(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "chat.reply", "/admin/chats");
   const conversationId = String(formData.get("conversationId") ?? "");
   const content = String(formData.get("content") ?? "").trim();
   if (!conversationId || !content) redirect("/admin/chats/" + conversationId);
 
   const dbs = db();
+  const conv = await dbs
+    .select({ channel: schema.conversations.channel, metadata: schema.conversations.metadata })
+    .from(schema.conversations)
+    .where(eq(schema.conversations.id, conversationId))
+    .limit(1);
+  const channel = conv[0]?.channel ?? "WEB";
+  const meta = (conv[0]?.metadata ?? {}) as { phone?: string };
+
   await dbs.insert(schema.messages).values({
     conversationId,
     senderType: "AGENT",
-    channel: "WEB",
+    channel,
     direction: "OUTBOUND",
     content,
     metadata: { agentId: user.id, agentName: user.name },
@@ -27,6 +36,15 @@ export async function sendAgentMessage(formData: FormData) {
     .update(schema.conversations)
     .set({ status: "IN_PROGRESS", updatedAt: sql`now()` })
     .where(eq(schema.conversations.id, conversationId));
+
+  if (channel === "WHATSAPP" && meta.phone) {
+    try {
+      await createWhatsAppProvider().send({ to: meta.phone, text: content });
+    } catch (err) {
+      // reply is stored even if WhatsApp delivery fails; admin can retry
+      console.error("whatsapp agent reply failed", err);
+    }
+  }
 
   const handoffs = await dbs
     .select({ id: schema.handoffs.id })
@@ -47,8 +65,8 @@ export async function sendAgentMessage(formData: FormData) {
 }
 
 export async function resolveConversation(formData: FormData) {
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
+  const user = await requireUser();
+  requirePerm(user, "chat.reply", "/admin/chats");
   const conversationId = String(formData.get("conversationId") ?? "");
   if (!conversationId) redirect("/admin/chats");
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ContactForm } from "@/components/contact/ContactForm";
 import { Reveal } from "@/components/motion/Reveal";
 import { getCompanyProfile, getContactSettings } from "@/lib/content";
+import { getContactPageContent } from "@/lib/site-content";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ContactPage() {
-  const [profile, contact] = await Promise.all([getCompanyProfile(), getContactSettings()]);
+  const [profile, contact, page] = await Promise.all([getCompanyProfile(), getContactSettings(), getContactPageContent()]);
 
   return (
     <>
@@ -20,11 +21,9 @@ export default async function ContactPage() {
         <div className="grid-bg pointer-events-none absolute inset-0" />
         <div className="container-x relative">
           <Reveal>
-            <p className="eyebrow text-accent">Contact</p>
-            <h1 className="mt-3 text-4xl font-extrabold sm:text-5xl">Talk to our sales team</h1>
-            <p className="mt-4 max-w-2xl text-white/60">
-              Quotations, availability, documentation — send your requirement and we'll respond promptly.
-            </p>
+            <p className="eyebrow text-accent">{page.hero.eyebrow}</p>
+            <h1 className="mt-3 text-4xl font-extrabold sm:text-5xl">{page.hero.title}</h1>
+            <p className="mt-4 max-w-2xl text-white/60">{page.hero.subtext}</p>
           </Reveal>
         </div>
       </section>
@@ -34,7 +33,7 @@ export default async function ContactPage() {
           <div className="space-y-5 lg:col-span-2">
             <Reveal>
               <div className="card p-6">
-                <h2 className="font-bold">Direct lines</h2>
+                <h2 className="font-bold">{page.directLinesTitle}</h2>
                 <div className="mt-4 space-y-3">
                   {profile.phones?.map((p) => (
                     <a key={p} href={`tel:${p.replace(/[^+\d]/g, "")}`} className="flex items-center gap-3 rounded-xl bg-mist px-4 py-3 text-sm font-medium transition hover:bg-brand/5 hover:text-brand">
@@ -59,7 +58,7 @@ export default async function ContactPage() {
 
             <Reveal delay={0.1}>
               <div className="card p-6">
-                <h2 className="font-bold">Head office</h2>
+                <h2 className="font-bold">{page.headOfficeTitle}</h2>
                 <p className="mt-3 text-sm leading-relaxed text-ink/65">{profile.offices?.[0]?.address}</p>
                 <p className="mt-3 flex items-center gap-2 text-sm text-ink/65">
                   <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 text-brand" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>

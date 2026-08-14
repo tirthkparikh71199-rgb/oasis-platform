@@ -44,7 +44,7 @@ export async function indexDocument(opts: { documentId: string; content: string;
       content: chunks[i].text,
       metadata: {},
       visibility: opts.visibility,
-      embedding: sql`'[${embedding.join(",")}]'`,
+      embedding: sql`${`[${embedding.join(",")}]`}`,
     });
   }
 
@@ -104,3 +104,5 @@ export async function retrieve(opts: {
 }
 
 export const PUBLIC_RETRIEVAL = VISIBILITY.PUBLIC;
+
+export * from "./train";

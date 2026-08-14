@@ -2,20 +2,19 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import type { ChatContent } from "@/lib/site-content";
 
 interface ChatMessage {
   role: "user" | "bot" | "agent";
   content: string;
 }
 
-const QUICK_PROMPTS = ["What products do you supply?", "Do you have PVC Resin K67?", "Get a quotation", "Talk to a sales agent"];
-
 const STORAGE_KEY = "oasis_chat_conv";
 
-export function ChatWidget() {
+export function ChatWidget({ chat }: { chat: ChatContent }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: "bot", content: "Namaste! I'm the Oasis Impex assistant. Ask me about PVC Resin, PVC Regrind, PET Resin and Calcium Carbonate — or connect with our sales team." },
+    { role: "bot", content: chat.welcome },
   ]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
@@ -149,7 +148,7 @@ export function ChatWidget() {
                 <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-ink bg-emerald-400" />
               </span>
               <div className="flex-1">
-                <div className="font-display text-sm font-bold">Oasis Assistant</div>
+                <div className="font-display text-sm font-bold">{chat.assistantName}</div>
                 <div className="text-[11px] text-white/55">RAG-powered · answers in seconds</div>
               </div>
             </div>
@@ -202,7 +201,7 @@ export function ChatWidget() {
             </div>
 
             <div className="flex flex-wrap gap-1.5 border-t border-line bg-white px-3 pt-2.5">
-              {QUICK_PROMPTS.map((q) => (
+              {chat.quickPrompts.map((q) => (
                 <button
                   key={q}
                   type="button"

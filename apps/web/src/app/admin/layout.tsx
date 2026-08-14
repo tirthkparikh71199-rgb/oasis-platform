@@ -1,22 +1,32 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, hasPermission } from "@/lib/auth";
 import { logout } from "./actions";
 
 export const metadata = { title: "Admin | Oasis Impex", robots: { index: false, follow: false } };
 
-const NAV = [
-  { href: "/admin", label: "Dashboard" },
-  { href: "/admin/products", label: "Products" },
-  { href: "/admin/customers", label: "Customers" },
-  { href: "/admin/warehouses", label: "Warehouses & Stock" },
-  { href: "/admin/inquiries", label: "Inquiries" },
-  { href: "/admin/chats", label: "Chats" },
+interface NavItem {
+  href: string;
+  label: string;
+  perm: string;
+}
+
+const NAV: NavItem[] = [
+  { href: "/admin", label: "Dashboard", perm: "" },
+  { href: "/admin/orders", label: "Orders", perm: "orders.read" },
+  { href: "/admin/products", label: "Products", perm: "catalog.read" },
+  { href: "/admin/customers", label: "Customers", perm: "partners.read" },
+  { href: "/admin/inquiries", label: "Inquiries", perm: "leads.read" },
+  { href: "/admin/warehouses", label: "Warehouses & Stock", perm: "inventory.read" },
+  { href: "/admin/chats", label: "Chats", perm: "chat.read" },
+  { href: "/admin/content", label: "Website Content", perm: "settings.read" },
+  { href: "/admin/users", label: "Team & Roles", perm: "users.read" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const user = await getSessionUser();
   if (!user) redirect("/login");
+  const visible = NAV.filter((n) => !n.perm || hasPermission(user, n.perm));
 
   return (
     <div className="min-h-screen bg-[#0B1320] text-slate-200">
@@ -28,7 +38,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </span>
         </Link>
         <nav className="mt-8 space-y-1">
-          {NAV.map((item) => (
+          {visible.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -41,6 +51,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="mt-8 border-t border-white/10 pt-4">
           <p className="truncate px-3 text-xs font-semibold text-slate-300">{user.name}</p>
           <p className="px-3 text-[11px] text-slate-500">{user.email}</p>
+          <p className="px-3 pt-1 text-[10px] uppercase tracking-wide text-slate-600">{user.roles.join(", ")}</p>
           <form action={logout}>
             <button className="mt-2 w-full rounded-lg px-3 py-2 text-left text-sm text-slate-400 transition hover:bg-red-500/10 hover:text-red-300">
               Sign out
@@ -58,7 +69,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </form>
         </header>
         <nav className="flex gap-1 overflow-x-auto border-b border-white/10 bg-[#0D1626] px-4 py-2 md:hidden">
-          {NAV.map((item) => (
+          {visible.map((item) => (
             <Link
               key={item.href}
               href={item.href}

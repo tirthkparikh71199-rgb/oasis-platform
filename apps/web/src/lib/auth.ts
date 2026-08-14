@@ -1,22 +1,19 @@
 import "server-only";
 import { createHash, randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 import { schema } from "@oasis/db";
 import { db } from "./db";
+import type { SessionUser } from "./rbac";
+import { hasPermission } from "./rbac";
 
 export const SESSION_COOKIE = "oasis_session";
 export const SESSION_DAYS = 14;
 
 const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
-export interface SessionUser {
-  id: string;
-  email: string;
-  name: string;
-  roles: string[];
-  permissions: string[];
-}
+export type { SessionUser };
 
 export async function createSession(userId: string, ip?: string): Promise<void> {
   const token = randomBytes(32).toString("base64url");
@@ -83,6 +80,14 @@ export async function destroySession(): Promise<void> {
   cookieStore.delete(SESSION_COOKIE);
 }
 
-export function hasPermission(user: SessionUser, permission: string): boolean {
-  return user.permissions.includes(permission) || user.roles.includes("SUPER_ADMIN");
+export { hasPermission } from "./rbac";
+
+export async function requireUser(): Promise<SessionUser> {
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  return user;
+}
+
+export function requirePerm(user: SessionUser, permission: string, fallback = "/admin"): void {
+  if (!hasPermission(user, permission)) redirect(`${fallback}?error=no-permission`);
 }
