@@ -8,6 +8,9 @@ import { ProductCard } from "@/components/home/ProductCard";
 import { SupplyChainFlow } from "@/components/home/SupplyChainFlow";
 import { Reveal } from "@/components/motion/Reveal";
 import { Counter } from "@/components/motion/Counter";
+import { ScrollReveal } from "@/components/motion/ScrollAnimations";
+import { HowItWorksAnimation, ShipSailingAnimation, DeliveryTruckAnimation } from "@/components/home/AnimatedSections";
+import { GlowCard, MorphingBlob } from "@/components/motion/PremiumAnimations";
 import { getCompanyProfile, getProducts, getCategories } from "@/lib/content";
 import { getHomeContent } from "@/lib/site-content";
 import type { Metadata } from "next";
@@ -139,8 +142,8 @@ export default async function HomePage() {
             </Reveal>
             <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {testimonials.map((t) => (
-                <Reveal key={t.id} className="h-full">
-                  <div className="card h-full p-6">
+                <ScrollReveal key={t.id} className="h-full">
+                  <GlowCard className="h-full p-6">
                     <div className="flex gap-1 text-brand">
                       {[...Array(5)].map((_, i) => (
                         <svg key={i} viewBox="0 0 20 20" className={`h-5 w-5 ${i < (t.rating ?? 5) ? "fill-current" : "fill-gray-200"}`}>
@@ -153,8 +156,8 @@ export default async function HomePage() {
                       <p className="font-bold text-ink">{t.customerName}</p>
                       {t.company ? <p className="text-xs text-ink/50">{t.company}</p> : null}
                     </div>
-                  </div>
-                </Reveal>
+                  </GlowCard>
+                </ScrollReveal>
               ))}
             </div>
           </div>
@@ -229,6 +232,30 @@ export default async function HomePage() {
                 </div>
               </Reveal>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="relative overflow-hidden bg-ink py-20 text-white sm:py-24">
+        <div className="grid-bg pointer-events-none absolute inset-0" />
+        <div className="pointer-events-none absolute left-1/2 top-0 h-64 w-[36rem] -translate-x-1/2 rounded-full bg-brand/30 blur-[110px]" />
+        <MorphingBlob className="absolute -right-32 -top-32 h-64 w-64 opacity-30" />
+        <div className="container-x relative">
+          <Reveal>
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="eyebrow text-accent">How It Works</p>
+              <h2 className="mt-3 text-3xl font-extrabold sm:text-4xl">From Inquiry to Delivery</h2>
+              <p className="mt-4 text-white/60">Simple 4-step process to get the polymer raw materials you need.</p>
+            </div>
+          </Reveal>
+          <Reveal delay={0.15}>
+            <div className="mt-12">
+              <HowItWorksAnimation />
+            </div>
+          </Reveal>
+          <div className="mt-10 grid gap-5 sm:grid-cols-2">
+            <ShipSailingAnimation />
+            <DeliveryTruckAnimation />
           </div>
         </div>
       </section>
