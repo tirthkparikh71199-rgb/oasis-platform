@@ -13,6 +13,7 @@ import { HowItWorksAnimation, ShipSailingAnimation, DeliveryTruckAnimation } fro
 import { GlowCard, MorphingBlob } from "@/components/motion/PremiumAnimations";
 import { getCompanyProfile, getProducts, getCategories } from "@/lib/content";
 import { getHomeContent } from "@/lib/site-content";
+import { buildOrganizationSchema, buildLocalBusinessSchema } from "@/lib/seo";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,8 @@ export default async function HomePage() {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildOrganizationSchema()) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildLocalBusinessSchema()) }} />
       <Hero home={home} />
       <ProductMarquee items={home.marquee} />
 

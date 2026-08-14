@@ -1,7 +1,7 @@
 # Oasis Platform — Development Tracker
 
 > Last updated: 2025-08-14  
-> Branch: dev (latest: 47fc20d)  
+> Branch: dev (latest: b982407)  
 > PR #2: https://github.com/tirthkparikh71199-rgb/oasis-platform/pull/2
 
 ---
@@ -22,8 +22,9 @@
 - [x] Newsletter signup (footer)
 - [x] Chat widget (floating)
 - [x] Terms, Privacy, About pages
+- [x] Dynamic pages (admin-created routes)
 
-### ADMIN CONSOLE
+### ADMIN CONSOLE (Full Control)
 - [x] Dashboard
 - [x] Inquiries pipeline (NEW→CONTACTED→QUALIFIED→IN_PROGRESS→CONVERTED/CLOSED)
 - [x] Chats (reply on ANY channel — web, WhatsApp, email)
@@ -41,7 +42,11 @@
 - [x] Audit log (last 14 days + CSV export)
 - [x] CSV import/export (customers, inquiries)
 - [x] Analytics dashboard (KPIs, source bars, pipeline)
+- [x] **Reports page** (sales, inventory, customers, campaigns, inquiries)
 - [x] Content management (CMS pages)
+- [x] **Navigation management** (add/remove/reorder nav from admin)
+- [x] **Form builder** (create custom forms with any fields)
+- [x] **Page builder** (create new routes from admin)
 
 ### CHATBOT (Multi-Channel)
 - [x] Web chat widget
@@ -58,7 +63,7 @@
 - [x] Campaign sender with suppression
 - [x] CAN-SPAM footer + List-Unsubscribe headers
 - [x] 250ms throttle between sends
-- [x] Unsubscribe system (HMAC-signed)
+- [x] Unsubscribe system (HASM-signed)
 - [x] WhatsApp STOP/START handling
 - [x] Team WhatsApp alerts
 
@@ -81,12 +86,11 @@
 ## What's Missing (TODO)
 
 ### HIGH Priority
-- [ ] Reports page (sales, inventory, customer, campaign reports)
-- [ ] Enhanced analytics (revenue, product performance, customer growth charts)
-- [ ] Navigation management from admin
-- [ ] Form builder (create custom forms)
-- [ ] Page builder (PHP-like control)
+- [ ] Enhanced analytics (charts, graphs, trends — need chart library)
 - [ ] Deploy to production (needs HETZNER_API_TOKEN)
+- [ ] Form submission viewer (admin view submissions)
+- [ ] Page content editor (block-based UI)
+- [ ] Form field editor (add/remove/reorder fields)
 
 ### MEDIUM Priority
 - [ ] Multi-language support (Hindi, Gujarati)
@@ -94,7 +98,7 @@
 - [ ] Campaign analytics (open/click tracking)
 - [ ] Customer portal (login, view orders)
 - [ ] Product comparison tool
-- [ ] More scroll animations (parallax sections)
+- [ ] More scroll animations
 
 ### LOW Priority
 - [ ] Email templates (customizable)
@@ -109,7 +113,7 @@
 
 | Branch | Latest | Notes |
 |--------|--------|-------|
-| dev | `47fc20d` | All features committed |
+| dev | `b982407` | All features committed |
 | main | `7523bcb` | PR #1 merged |
 
 ---

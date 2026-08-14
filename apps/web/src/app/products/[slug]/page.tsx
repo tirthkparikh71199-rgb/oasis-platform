@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getProducts } from "@/lib/content";
-import { buildMetadata } from "@/lib/seo";
+import { buildMetadata, buildProductSchema } from "@/lib/seo";
 import { ProductViewTracker } from "./product-view-tracker";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +32,7 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(buildProductSchema({ name: product.name, description: product.shortDescription, slug: product.slug, category: product.categoryId })) }} />
       <ProductViewTracker product={{ id: product.id, name: product.name, slug: product.slug, category: product.categoryId }} />
       <section className="relative overflow-hidden bg-ink pt-32 pb-16 text-white">
         <div className="grid-bg pointer-events-none absolute inset-0" />
