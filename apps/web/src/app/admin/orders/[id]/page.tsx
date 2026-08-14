@@ -75,12 +75,6 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-xs uppercase tracking-wide text-slate-500">Amount</dt>
-                    <dd className="mt-1 font-semibold text-slate-200">
-                      {r.order.amount != null ? `₹${Number(r.order.amount).toLocaleString("en-IN")}` : "—"}
-                    </dd>
-                  </div>
-                  <div>
                     <dt className="text-xs uppercase tracking-wide text-slate-500">Expected date</dt>
                     <dd className="mt-1 text-slate-300">{r.order.expectedDate ?? "—"}</dd>
                   </div>
@@ -126,7 +120,7 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
               ) : null}
             </div>
 
-            <OrderForm order={{ ...r.order, amount: r.order.amount?.toString() ?? "" }} customers={customers} products={products} />
+            <OrderForm order={{ ...r.order }} customers={customers} products={products} />
           </div>
         </>
       ) : (

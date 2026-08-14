@@ -3,6 +3,8 @@ import { ProductCard } from "@/components/home/ProductCard";
 import { Reveal } from "@/components/motion/Reveal";
 import { getProducts, getCategories } from "@/lib/content";
 import { getProductsPageContent } from "@/lib/site-content";
+import { ProductRequestForm } from "./product-request-form";
+import { ProductRequestStatusLookup } from "./product-request-status";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +14,10 @@ export const metadata: Metadata = {
     "Explore our range: PVC Resin (K67, K57), PET Resin, PVC Regrind and Calcium Carbonate — consistent quality, reliable supply across India.",
 };
 
-export default async function ProductsPage() {
+export default async function ProductsPage({ searchParams }: { searchParams: Promise<{ requested?: string }> }) {
   const [products, categories, page] = await Promise.all([getProducts({ publicOnly: true }), getCategories(), getProductsPageContent()]);
   const catBySlug = new Map(categories.map((c) => [c.id, c.slug]));
+  const { requested } = await searchParams;
 
   return (
     <>
@@ -43,6 +46,26 @@ export default async function ProductsPage() {
               {products.map((p, i) => (
                 <ProductCard key={p.id} product={p} categorySlug={catBySlug.get(p.categoryId ?? "")} index={i} />
               ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="pb-16 sm:pb-20">
+        <div className="container-x">
+          {requested ? (
+            <div className="rounded-2xl border border-brand/30 bg-brand/5 p-8 text-center">
+              <p className="text-lg font-bold text-ink">Thank you — request received</p>
+              <p className="mt-2 text-sm text-ink/60">Our team will check availability for this product and get back to you shortly.</p>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              <Reveal>
+                <ProductRequestForm />
+              </Reveal>
+              <Reveal>
+                <ProductRequestStatusLookup />
+              </Reveal>
             </div>
           )}
         </div>

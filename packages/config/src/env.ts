@@ -38,6 +38,7 @@ const envSchema = z.object({
   WHATSAPP_VERIFY_TOKEN: z.string().default(""),
   WHATSAPP_APP_SECRET: z.string().default(""),
   WHATSAPP_WEBHOOK_URL: z.string().default(""),
+  TEAM_WHATSAPP_NUMBERS: z.string().default(""),
 
   BACKUP_ENCRYPTION_KEY: z.string().default(""),
   BACKUP_REMOTE: z.string().default(""),

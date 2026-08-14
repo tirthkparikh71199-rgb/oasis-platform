@@ -12,7 +12,7 @@ export { HANDOFF_KEYWORDS, SYSTEM_PROMPT } from "./agent-policy";
 export interface ChatEngineOptions {
   content: string;
   conversationId?: string | null;
-  channel: "WEB" | "WHATSAPP";
+  channel: "WEB" | "WHATSAPP" | "EMAIL";
   externalId?: string | null;
   page?: string;
 }

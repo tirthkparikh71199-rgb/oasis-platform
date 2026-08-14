@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { CompanyProfile } from "@/lib/content";
 import type { FooterContent } from "@/lib/site-content";
+import { NewsletterForm } from "@/components/site/NewsletterForm";
 
 const QUICK_LINKS = [
   { href: "/products", label: "PVC Resin" },
@@ -76,6 +77,14 @@ export function Footer({ profile, footer }: { profile: CompanyProfile; footer: F
                 {profile.offices?.[0]?.address}
               </li>
             </ul>
+          </div>
+        </div>
+
+        <div className="mt-10 border-t border-white/10 pt-8">
+          <h4 className="eyebrow text-white/50">Stay updated</h4>
+          <p className="mt-2 text-sm text-white/60">Get product availability and market updates directly to your inbox.</p>
+          <div className="mt-4 max-w-md">
+            <NewsletterForm />
           </div>
         </div>
 

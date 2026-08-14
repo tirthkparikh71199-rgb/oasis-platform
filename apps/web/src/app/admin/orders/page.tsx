@@ -79,7 +79,6 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
               <th className="px-4 py-3">Customer</th>
               <th className="px-4 py-3">Product</th>
               <th className="px-4 py-3">Qty</th>
-              <th className="px-4 py-3">Amount</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Expected</th>
               <th className="px-4 py-3">Entered by</th>
@@ -89,7 +88,7 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
           <tbody className="divide-y divide-white/5">
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={8} className="px-4 py-8 text-center text-slate-500">
                   No orders found. Create the first one.
                 </td>
               </tr>
@@ -106,9 +105,6 @@ export default async function AdminOrdersPage({ searchParams }: { searchParams: 
                   <td className="px-4 py-3 text-slate-400">
                     {r.order.quantity ?? "—"}
                     {r.order.unit ? <span className="text-xs text-slate-500"> {r.order.unit}</span> : null}
-                  </td>
-                  <td className="px-4 py-3 text-slate-300">
-                    {r.order.amount != null ? `₹${Number(r.order.amount).toLocaleString("en-IN")}` : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${ORDER_STATUS_STYLES[r.order.status] ?? ""}`}>

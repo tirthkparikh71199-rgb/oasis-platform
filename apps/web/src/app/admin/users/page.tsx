@@ -8,28 +8,35 @@ export const metadata = { title: "Team | Oasis Impex Admin" };
 
 export const dynamic = "force-dynamic";
 
-const ROLE_OPTIONS = ["ADMIN", "SALES", "ANALYST", "INVENTORY_MANAGER", "KNOWLEDGE_MANAGER", "AGENT", "VIEWER"];
-
 export default async function AdminUsersPage({ searchParams }: { searchParams: Promise<{ created?: string }> }) {
   const user = await requireUser();
   requirePerm(user, "users.read", "/admin");
   const { created } = await searchParams;
 
-  const rows = await db()
-    .select({
-      user: schema.users,
-      roleName: schema.roles.name,
-      roleDescription: schema.roles.description,
-    })
-    .from(schema.users)
-    .leftJoin(schema.userRoles, sql`${schema.userRoles.userId} = ${schema.users.id}`)
-    .leftJoin(schema.roles, sql`${schema.roles.id} = ${schema.userRoles.roleId}`)
-    .orderBy(desc(schema.users.createdAt));
+  const [rows, roles] = await Promise.all([
+    db()
+      .select({
+        user: schema.users,
+        roleName: schema.roles.name,
+        roleDescription: schema.roles.description,
+      })
+      .from(schema.users)
+      .leftJoin(schema.userRoles, sql`${schema.userRoles.userId} = ${schema.users.id}`)
+      .leftJoin(schema.roles, sql`${schema.roles.id} = ${schema.userRoles.roleId}`)
+      .orderBy(desc(schema.users.createdAt)),
+    db().select({ name: schema.roles.name }).from(schema.roles).orderBy(sql`name`),
+  ]);
+  const roleOptions = roles.map((r) => r.name);
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-white">Team &amp; roles</h1>
       {created ? <p className="mt-3 rounded-lg bg-emerald-500/10 px-3 py-2 text-sm text-emerald-300">User created. They can sign in at /login.</p> : null}
+      <p className="mt-1 text-sm text-slate-400">
+        <a href="/admin/roles" className="text-accent hover:underline">
+          Manage roles &amp; permissions →
+        </a>
+      </p>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
         <div className="overflow-x-auto rounded-xl border border-white/10">
@@ -60,7 +67,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
                         defaultValue={r.roleName ?? "VIEWER"}
                         className="rounded-lg border border-white/10 bg-slate-950/60 px-2 py-1.5 text-xs text-white outline-none focus:border-accent"
                       >
-                        {ROLE_OPTIONS.map((o) => (
+                        {roleOptions.map((o) => (
                           <option key={o} value={o}>
                             {o}
                           </option>
@@ -119,7 +126,7 @@ export default async function AdminUsersPage({ searchParams }: { searchParams: P
             <label className="block">
               <span className="text-xs font-medium text-slate-300">Role *</span>
               <select name="role" defaultValue="ANALYST" className="mt-1.5 w-full rounded-lg border border-white/10 bg-slate-950/60 px-3 py-2.5 text-sm text-white outline-none focus:border-accent">
-                {ROLE_OPTIONS.map((o) => (
+                {roleOptions.map((o) => (
                   <option key={o} value={o}>
                     {o}
                   </option>

@@ -4,6 +4,8 @@ import { eq } from "drizzle-orm";
 import { schema } from "@oasis/db";
 import { createWhatsAppProvider } from "@oasis/messaging";
 import { runChatEngine } from "@/lib/chat-engine";
+import { notifyTeam } from "@/lib/notify";
+import { env } from "@oasis/config";
 import { db } from "@/lib/db";
 import { createLogger } from "@oasis/logger";
 
@@ -71,7 +73,50 @@ export async function POST(req: NextRequest) {
           const text = msg.text.body.trim();
           if (!text) continue;
 
+          // Handle opt-out/opt-in keywords
+          const upperText = text.toUpperCase();
+          if (upperText === "STOP" || upperText === "UNSUBSCRIBE" || upperText === "OPT OUT") {
+            try {
+              const { eq: eqOp } = await import("drizzle-orm");
+              const { schema } = await import("@oasis/db");
+              const dbs2 = db();
+              const existing = await dbs2.select({ id: schema.subscribers.id }).from(schema.subscribers).where(eqOp(schema.subscribers.phone, phone)).limit(1);
+              if (existing.length === 0) {
+                await dbs2.insert(schema.subscribers).values({ phone, unsubscribed: true, source: "WHATSAPP_STOP" });
+              } else {
+                await dbs2.update(schema.subscribers).set({ unsubscribed: true }).where(eqOp(schema.subscribers.id, existing[0].id));
+              }
+              await whatsapp.send({ to: phone, text: "You have been unsubscribed from our marketing messages. You will no longer receive promotional content. Reply START to resubscribe." });
+              log.info({ phone }, "whatsapp opt-out processed");
+            } catch (err) {
+              log.error({ err, phone }, "whatsapp opt-out failed");
+            }
+            continue;
+          }
+
+          if (upperText === "START" || upperText === "SUBSCRIBE" || upperText === "OPT IN") {
+            try {
+              const { eq: eqOp } = await import("drizzle-orm");
+              const { schema } = await import("@oasis/db");
+              const dbs2 = db();
+              const existing = await dbs2.select({ id: schema.subscribers.id }).from(schema.subscribers).where(eqOp(schema.subscribers.phone, phone)).limit(1);
+              if (existing.length === 0) {
+                await dbs2.insert(schema.subscribers).values({ phone, unsubscribed: false, source: "WHATSAPP_START" });
+              } else {
+                await dbs2.update(schema.subscribers).set({ unsubscribed: false }).where(eqOp(schema.subscribers.id, existing[0].id));
+              }
+              await whatsapp.send({ to: phone, text: "Welcome back! You have been resubscribed to our updates. Reply STOP to opt out anytime." });
+              log.info({ phone }, "whatsapp opt-in processed");
+            } catch (err) {
+              log.error({ err, phone }, "whatsapp opt-in failed");
+            }
+            continue;
+          }
+
           try {
+            const existing = await dbs.select({ id: schema.conversations.id }).from(schema.conversations).where(eq(schema.conversations.externalId, externalId)).limit(1);
+            const isNewConversation = existing.length === 0;
+
             const result = await runChatEngine({
               content: text,
               channel: "WHATSAPP",
@@ -84,6 +129,14 @@ export async function POST(req: NextRequest) {
                 .update(schema.conversations)
                 .set({ metadata: { phone, whatsappName: contactName } })
                 .where(eq(schema.conversations.id, result.conversationId));
+            }
+
+            if (isNewConversation) {
+              await notifyTeam("New WhatsApp lead", [
+                { label: "Phone", value: phone },
+                { label: "Name", value: contactName },
+                { label: "First message", value: text.slice(0, 300) },
+              ], `Open: ${env().APP_URL ?? "http://localhost:3000"}/admin/chats/${result.conversationId}`);
             }
 
             await whatsapp.send({ to: phone, text: result.reply });

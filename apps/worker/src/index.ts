@@ -1,8 +1,9 @@
 import { and, desc, eq, gte, isNull, lt, sql } from "drizzle-orm";
 import { createDb, schema } from "@oasis/db";
 import { createLogger } from "@oasis/logger";
-import { createEmailProvider } from "@oasis/messaging";
+import { createEmailProvider, sendDueCampaigns } from "@oasis/messaging";
 import { env } from "@oasis/config";
+import { pollInbox } from "./email-channel";
 
 const log = createLogger("worker");
 const POLL_MS = 60_000;
@@ -84,7 +85,7 @@ async function sendDailyReport() {
   const prevDayStartUtc = new Date(dayStartUtc.getTime() - 86400_000);
   const reportDate = istDateStr(-1);
 
-  const [orders, inquiries, customers, pendingHandoffs, lowStock] = await Promise.all([
+  const [orders, inquiries, customers, pendingHandoffs, productRequests, dueReminders] = await Promise.all([
     db
       .select({
         orderNumber: schema.orders.orderNumber,
@@ -92,7 +93,6 @@ async function sendDailyReport() {
         product: schema.products.name,
         quantity: schema.orders.quantity,
         unit: schema.orders.unit,
-        amount: schema.orders.amount,
         status: schema.orders.status,
         createdBy: schema.users.name,
       })
@@ -120,16 +120,17 @@ async function sendDailyReport() {
       .orderBy(desc(schema.handoffs.createdAt))
       .limit(10),
     db
-      .select({
-        name: schema.products.name,
-        quantity: schema.inventory.quantity,
-        warehouse: schema.warehouses.name,
-      })
-      .from(schema.inventory)
-      .innerJoin(schema.products, eq(schema.inventory.productId, schema.products.id))
-      .innerJoin(schema.warehouses, eq(schema.inventory.warehouseId, schema.warehouses.id))
-      .where(and(sql`${schema.inventory.lowStockThreshold} is not null`, sql`${schema.inventory.quantity}::numeric <= ${schema.inventory.lowStockThreshold}::numeric`))
-      .limit(10),
+      .select({ productName: schema.productRequests.productName, company: schema.productRequests.company, email: schema.productRequests.email, status: schema.productRequests.status, createdAt: schema.productRequests.createdAt })
+      .from(schema.productRequests)
+      .where(and(gte(schema.productRequests.createdAt, prevDayStartUtc), lt(schema.productRequests.createdAt, dayStartUtc)))
+      .orderBy(schema.productRequests.createdAt),
+    db
+      .select({ title: schema.reminders.title, dueAt: schema.reminders.dueAt, assignedTo: schema.users.name })
+      .from(schema.reminders)
+      .leftJoin(schema.users, eq(schema.reminders.assignedTo, schema.users.id))
+      .where(and(eq(schema.reminders.done, false), sql`${schema.reminders.dueAt} <= now() + interval '48 hours'`))
+      .orderBy(schema.reminders.dueAt)
+      .limit(20),
   ]);
 
   const lines: string[] = [];
@@ -141,7 +142,7 @@ async function sendDailyReport() {
   if (orders.length === 0) lines.push("  None.");
   for (const o of orders) {
     lines.push(
-      `  • ${o.orderNumber} — ${o.customer} | ${o.product ?? "—"} | ${o.quantity ?? "—"}${o.unit ? " " + o.unit : ""}${o.amount != null ? ` | ₹${Number(o.amount).toLocaleString("en-IN")}` : ""} | ${o.status}${o.createdBy ? ` | entered by ${o.createdBy}` : ""}`,
+      `  • ${o.orderNumber} — ${o.customer} | ${o.product ?? "—"} | ${o.quantity ?? "—"}${o.unit ? " " + o.unit : ""} | ${o.status}${o.createdBy ? ` | entered by ${o.createdBy}` : ""}`,
     );
   }
   lines.push("");
@@ -167,10 +168,17 @@ async function sendDailyReport() {
   }
   lines.push("");
 
-  lines.push(`LOW STOCK (${lowStock.length})`);
-  if (lowStock.length === 0) lines.push("  None — stock levels healthy.");
-  for (const s of lowStock) {
-    lines.push(`  • ${s.name} (${s.warehouse}) — ${s.quantity}`);
+  lines.push(`NEW PRODUCT REQUESTS (${productRequests.length})`);
+  if (productRequests.length === 0) lines.push("  None.");
+  for (const p of productRequests) {
+    lines.push(`  • ${p.productName} — ${p.company ?? p.email ?? "unknown"} | ${p.status}`);
+  }
+  lines.push("");
+
+  lines.push(`FOLLOW-UPS DUE (${dueReminders.length})`);
+  if (dueReminders.length === 0) lines.push("  None — follow-ups clear.");
+  for (const r of dueReminders) {
+    lines.push(`  • ${r.title} — due ${r.dueAt.toISOString().slice(0, 16)}${r.assignedTo ? ` | ${r.assignedTo}` : ""}`);
   }
   lines.push("");
 
@@ -192,8 +200,11 @@ async function sendDailyReport() {
 
 async function tick() {
   try {
+    const cfg = env();
     await notifyNewHandoffs();
     await sendDailyReport();
+    await sendDueCampaigns(dbs(), cfg.SESSION_SECRET, cfg.APP_URL);
+    await pollInbox();
   } catch (err) {
     log.error({ err }, "tick failed");
   }

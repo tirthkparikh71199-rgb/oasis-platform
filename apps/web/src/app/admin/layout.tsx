@@ -13,14 +13,19 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { href: "/admin", label: "Dashboard", perm: "" },
-  { href: "/admin/orders", label: "Orders", perm: "orders.read" },
-  { href: "/admin/products", label: "Products", perm: "catalog.read" },
+  { href: "/admin/inquiries", label: "Leads & Inquiries", perm: "leads.read" },
+  { href: "/admin/chats", label: "Chats & WhatsApp", perm: "chat.read" },
+  { href: "/admin/products/requests", label: "Product Requests", perm: "requests.read" },
   { href: "/admin/customers", label: "Customers", perm: "partners.read" },
-  { href: "/admin/inquiries", label: "Inquiries", perm: "leads.read" },
-  { href: "/admin/warehouses", label: "Warehouses & Stock", perm: "inventory.read" },
-  { href: "/admin/chats", label: "Chats", perm: "chat.read" },
+  { href: "/admin/products", label: "Products", perm: "catalog.read" },
+  { href: "/admin/campaigns", label: "Email Campaigns", perm: "campaigns.read" },
+  { href: "/admin/email-controls", label: "Email Controls", perm: "campaigns.read" },
+  { href: "/admin/analytics", label: "Analytics", perm: "analytics.read" },
   { href: "/admin/content", label: "Website Content", perm: "settings.read" },
+  { href: "/admin/reminders", label: "Follow-ups & Tasks", perm: "leads.read" },
+  { href: "/admin/audit", label: "Audit Log", perm: "settings.read" },
   { href: "/admin/users", label: "Team & Roles", perm: "users.read" },
+  { href: "/admin/orders", label: "Orders", perm: "orders.read" },
 ];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -34,6 +34,11 @@ const PERMISSION_SEEDS = [
   ["seo.read", "View SEO pages"],
   ["seo.write", "Edit SEO pages"],
   ["audit.read", "View audit logs"],
+  ["requests.read", "View product requests"],
+  ["requests.write", "Update product request status and notes"],
+  ["analytics.read", "View analytics dashboard"],
+  ["campaigns.read", "View email campaigns"],
+  ["campaigns.write", "Create and send email campaigns"],
   ["system.monitor", "View system health and jobs"],
   ["integrations.manage", "Configure integrations"],
 ] as const;
@@ -41,12 +46,12 @@ const PERMISSION_SEEDS = [
 const ROLE_PERMISSIONS: Record<string, string[]> = {
   SUPER_ADMIN: PERMISSION_SEEDS.map(([code]) => code),
   ADMIN: PERMISSION_SEEDS.filter(([code]) => !["roles.manage", "users.deactivate", "integrations.manage"].includes(code)).map(([code]) => code),
-  SALES: ["catalog.read", "partners.read", "partners.write", "leads.read", "leads.write", "leads.export", "orders.read", "orders.write", "chat.read", "chat.reply", "handoffs.manage", "knowledge.read", "reports.read"],
-  ANALYST: ["catalog.read", "inventory.read", "partners.read", "partners.write", "leads.read", "leads.write", "orders.read", "orders.write", "knowledge.read"],
-  INVENTORY_MANAGER: ["catalog.read", "catalog.write", "inventory.read", "inventory.write", "inventory.manage", "partners.read", "knowledge.read"],
+  SALES: ["catalog.read", "partners.read", "partners.write", "leads.read", "leads.write", "leads.export", "orders.read", "chat.read", "chat.reply", "handoffs.manage", "knowledge.read", "requests.read", "requests.write", "analytics.read", "campaigns.read"],
+  ANALYST: ["catalog.read", "partners.read", "partners.write", "leads.read", "leads.write", "orders.read", "knowledge.read", "requests.read", "analytics.read", "campaigns.read", "reports.read"],
+  INVENTORY_MANAGER: ["catalog.read", "catalog.write", "partners.read", "knowledge.read"],
   KNOWLEDGE_MANAGER: ["catalog.read", "knowledge.read", "knowledge.write", "knowledge.publish", "seo.read", "seo.write"],
-  AGENT: ["catalog.read", "leads.read", "chat.read", "chat.reply", "handoffs.manage", "knowledge.read"],
-  VIEWER: ["catalog.read", "inventory.read", "partners.read", "leads.read", "chat.read", "knowledge.read", "reports.read", "orders.read"],
+  AGENT: ["catalog.read", "leads.read", "chat.read", "chat.reply", "handoffs.manage", "knowledge.read", "requests.read"],
+  VIEWER: ["catalog.read", "partners.read", "leads.read", "chat.read", "knowledge.read", "requests.read", "analytics.read", "reports.read", "orders.read"],
 };
 
 type ProductSeed = {

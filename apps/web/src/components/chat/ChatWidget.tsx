@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ChatContent } from "@/lib/site-content";
+import { track } from "@/lib/analytics";
 
 interface ChatMessage {
   role: "user" | "bot" | "agent";
@@ -79,6 +80,7 @@ export function ChatWidget({ chat }: { chat: ChatContent }) {
   async function send(text: string) {
     const content = text.trim();
     if (!content || typing) return;
+    track("chat_message", { channel: "web" });
     setMessages((m) => [...m, { role: "user", content }]);
     setInput("");
     setTyping(true);
