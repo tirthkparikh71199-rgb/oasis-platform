@@ -45,13 +45,35 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  check:
+    name: Can we deploy?
+    runs-on: ubuntu-latest
+    needs: build
+    if: always() && !cancelled()
+    outputs:
+      deployable: ${{ steps.gate.outputs.deployable }}
+      ip: ${{ steps.gate.outputs.ip }}
+    env:
+      VPS_IP: ${{ vars.VPS_IP }}
+      HETZNER_TOKEN_SET: ${{ secrets.HETZNER_API_TOKEN != '' }}
+    steps:
+      - id: gate
+        run: |
+          if [ "$HETZNER_TOKEN_SET" = "true" ]; then
+            echo "deployable=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deployable=false" >> "$GITHUB_OUTPUT"
+            echo "HETZNER_API_TOKEN not set — skipping production deploy." >&2
+          fi
+          echo "ip=${VPS_IP}" >> "$GITHUB_OUTPUT"
+
   deploy:
     name: Deploy to Hetzner VPS
     runs-on: ubuntu-latest
-    needs: build
-    if: ${{ secrets.HETZNER_API_TOKEN != '' }}
+    needs: [build, check]
+    if: ${{ needs.check.outputs.deployable == 'true' && needs.build.result == 'success' }}
     env:
-      VPS_IP: ${{ vars.VPS_IP }}
+      VPS_IP: ${{ needs.check.outputs.ip }}
       DUCKDNS_TOKEN: ${{ secrets.DUCKDNS_TOKEN }}
     steps:
       - name: Checkout
@@ -116,18 +138,18 @@ jobs:
         env:
           VPS_IP: ${{ steps.server.outputs.ip }}
         run: |
-          ssh -o StrictHostKeyChecking=accept-new root@$VPS_IP "mkdir -p /opt/oasis-platform"
-          scp docker-compose.yml Caddyfile root@$VPS_IP:/opt/oasis-platform/
-          ssh root@$VPS_IP "printf '%s' '${{ secrets.DEPLOY_ENV }}' > /opt/oasis-platform/.env"
+          ssh -o StrictHostKeyChecking=accept-new "root@$VPS_IP" "mkdir -p /opt/oasis-platform"
+          scp docker-compose.yml Caddyfile "root@$VPS_IP:/opt/oasis-platform/"
+          printf '%s' '${{ secrets.DEPLOY_ENV }}' | ssh "root@$VPS_IP" "cat > /opt/oasis-platform/.env"
 
       - name: Deploy stack
         env:
           VPS_IP: ${{ steps.server.outputs.ip }}
         run: |
-          ssh root@$VPS_IP "cd /opt/oasis-platform && \
+          ssh "root@$VPS_IP" "cd /opt/oasis-platform && \
             (command -v docker >/dev/null || curl -fsSL https://get.docker.com | sh) && \
             docker compose pull web 2>/dev/null || true && \
-            docker compose up -d --force-recreate web && \
+            docker compose up -d --force-recreate web worker && \
             docker system prune -f --filter 'until=48h'"
 
       - name: Health check
