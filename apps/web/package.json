@@ -21,6 +21,7 @@
     "@oasis/messaging": "workspace:*",
     "@oasis/rag": "workspace:*",
     "@xyflow/react": "^12.4.2",
+    "argon2": "^0.41.1",
     "drizzle-orm": "^0.38.3",
     "framer-motion": "^12.4.7",
     "lenis": "^1.3.26",

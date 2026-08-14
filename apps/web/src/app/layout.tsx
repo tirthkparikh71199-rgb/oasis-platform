@@ -13,9 +13,9 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "sw
 const manrope = Manrope({ subsets: ["latin"], variable: "--font-manrope", display: "swap" });
 
 export const metadata: Metadata = buildMetadata({
-  title: "Importer of Polymer Raw Materials",
+  title: "Oasis Impex — Importer & Trader of PVC Resin & PET Raw Materials",
   description:
-    "Oasis Impex is an established Ahmedabad-based importer and supplier of PVC Resin, PVC Regrind, PET Resin and Calcium Carbonate — trusted by pipe, profile and fittings manufacturers across India.",
+    "Oasis Impex is an established Ahmedabad-based importer and trader of PVC Resin, PVC Regrind, PET Resin and Calcium Carbonate — trusted by pipe, profile and fittings manufacturers across India.",
   path: "/",
 });
 

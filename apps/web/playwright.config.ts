@@ -21,7 +21,7 @@ export default defineConfig({
   projects: [
     { name: "desktop-chromium", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile-chromium", use: { ...devices["Pixel 7"] } },
-    { name: "tablet-chromium", use: { ...devices["iPad Pro 11"] } },
+    { name: "tablet-chromium", use: { ...devices["Galaxy Tab S4"] } },
   ],
   webServer: {
     command: `DATABASE_URL=postgresql://oasis:oasis@localhost:5432/oasis APP_URL=${baseURL} NEXT_PUBLIC_APP_URL=${baseURL} AI_PROVIDER=mock pnpm --filter @oasis/web dev --port ${PORT}`,

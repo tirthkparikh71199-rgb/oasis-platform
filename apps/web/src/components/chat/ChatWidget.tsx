@@ -4,11 +4,13 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 
 interface ChatMessage {
-  role: "user" | "bot";
+  role: "user" | "bot" | "agent";
   content: string;
 }
 
 const QUICK_PROMPTS = ["What products do you supply?", "Do you have PVC Resin K67?", "Get a quotation", "Talk to a sales agent"];
+
+const STORAGE_KEY = "oasis_chat_conv";
 
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -17,14 +19,63 @@ export function ChatWidget() {
   ]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
-  const [conversationId, setConversationId] = useState<string | undefined>();
+  const [waitingForAgent, setWaitingForAgent] = useState(false);
+  const [conversationId, setConversationId] = useState<string | undefined>(() => {
+    if (typeof window === "undefined") return undefined;
+    return window.localStorage.getItem(STORAGE_KEY) ?? undefined;
+  });
+  const convRef = useRef(conversationId);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    convRef.current = conversationId;
+  }, [conversationId]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, typing, open]);
+
+  const messagesRef = useRef(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  useEffect(() => {
+    if (!waitingForAgent || !convRef.current) return;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = async () => {
+      try {
+        const res = await fetch(`/api/chat/history?conversationId=${encodeURIComponent(convRef.current!)}`);
+        const data = await res.json();
+        if (!res.ok || !Array.isArray(data.messages)) return;
+        const agentMsgs = data.messages.filter(
+          (m: { senderType: string; content: string }) => m.senderType === "AGENT" && m.content.trim(),
+        );
+        if (agentMsgs.length > 0) {
+          const seen = new Set(messagesRef.current.filter((m) => m.role !== "user").map((m) => m.content));
+          const fresh = agentMsgs.filter((m: { content: string }) => !seen.has(m.content));
+          if (fresh.length > 0) {
+            setMessages((prev) => [
+              ...prev,
+              ...fresh.map((m: { content: string }) => ({ role: "agent" as const, content: m.content })),
+            ]);
+            setWaitingForAgent(false);
+          }
+        }
+      } catch {
+        // transient — keep polling
+      }
+      if (!stopped) timer = setTimeout(tick, 5000);
+    };
+    void tick();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [waitingForAgent]);
 
   async function send(text: string) {
     const content = text.trim();
@@ -36,12 +87,16 @@ export function ChatWidget() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, conversationId }),
+        body: JSON.stringify({ content, conversationId: convRef.current }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "chat failed");
       setConversationId(data.conversationId);
+      window.localStorage.setItem(STORAGE_KEY, data.conversationId);
       setMessages((m) => [...m, { role: "bot", content: data.reply }]);
+      if (data.handoffCreated) {
+        setWaitingForAgent(true);
+      }
     } catch {
       setMessages((m) => [...m, { role: "bot", content: "I couldn't reach the assistant right now. Please try again, or call us directly — our team is available Mon–Sat." }]);
     } finally {
@@ -101,12 +156,17 @@ export function ChatWidget() {
 
             <div ref={scrollRef} className="flex-1 space-y-3 overflow-y-auto bg-mist/60 px-4 py-4">
               {messages.map((m, i) => (
-                <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div key={i} className={`flex flex-col ${m.role === "user" ? "items-end" : "items-start"}`}>
+                  {m.role === "agent" ? (
+                    <span className="mb-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">Sales team</span>
+                  ) : null}
                   <div
                     className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed shadow-sm ${
                       m.role === "user"
                         ? "rounded-br-md bg-brand text-white"
-                        : "rounded-bl-md border border-line bg-white text-ink"
+                        : m.role === "agent"
+                          ? "rounded-bl-md border border-emerald-200 bg-emerald-50 text-ink"
+                          : "rounded-bl-md border border-line bg-white text-ink"
                     }`}
                   >
                     {m.content}
@@ -124,6 +184,18 @@ export function ChatWidget() {
                         transition={{ duration: 0.7, repeat: Infinity, delay: d * 0.15 }}
                       />
                     ))}
+                  </div>
+                </div>
+              )}
+              {waitingForAgent && !typing && (
+                <div className="flex justify-start">
+                  <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs font-medium text-amber-800">
+                    <motion.span
+                      className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{ duration: 1.4, repeat: Infinity }}
+                    />
+                    One of our sales agents is picking this up — they'll reply here shortly.
                   </div>
                 </div>
               )}

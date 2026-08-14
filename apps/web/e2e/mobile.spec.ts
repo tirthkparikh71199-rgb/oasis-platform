@@ -1,7 +1,8 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Mobile & tablet responsiveness", () => {
-  test("mobile: menu opens and closes", async ({ page }) => {
+  test("mobile: menu opens and closes", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "mobile-chromium", "Only meaningful on a mobile viewport");
     await page.goto("/");
     const menuButton = page.getByRole("button", { name: /Open menu/i });
     await expect(menuButton).toBeVisible();
