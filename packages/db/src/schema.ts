@@ -682,6 +682,54 @@ export const testimonials = pgTable("testimonials", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Navigation items (admin-managed)
+export const navigationItems = pgTable("navigation_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  label: text("label").notNull(),
+  href: text("href").notNull(),
+  parentId: uuid("parent_id"),
+  sortOrder: integer("sort_order").default(0),
+  isPublished: boolean("is_published").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Custom forms (admin-managed)
+export const customForms = pgTable("custom_forms", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  fields: jsonb("fields").$type<Array<{ name: string; type: string; label: string; required: boolean; options?: string[] }>>().default([]),
+  submitAction: text("submit_action").notNull().default("EMAIL"), // EMAIL | WEBHOOK | DATABASE
+  submitEmail: text("submit_email"),
+  submitWebhook: text("submit_webhook"),
+  isPublished: boolean("is_published").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Form submissions
+export const formSubmissions = pgTable("form_submissions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  formId: uuid("form_id").notNull().references(() => customForms.id, { onDelete: "cascade" }),
+  data: jsonb("data").$type<Record<string, unknown>>().default({}),
+  submittedBy: text("submitted_by"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Dynamic pages (admin-managed)
+export const dynamicPages = pgTable("dynamic_pages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  content: jsonb("content").$type<Record<string, unknown>>().default({}),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  isPublished: boolean("is_published").notNull().default(true),
+  sortOrder: integer("sort_order").default(0),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // ---------------------------------------------------------------------------
 // Follow-up reminders & tasks
 // ---------------------------------------------------------------------------

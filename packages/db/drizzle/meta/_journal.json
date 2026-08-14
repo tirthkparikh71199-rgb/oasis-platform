@@ -36,6 +36,13 @@
       "when": 1786711919700,
       "tag": "0004_sleepy_harrier",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786713345004,
+      "tag": "0005_bright_sersi",
+      "breakpoints": true
     }
   ]
 }
